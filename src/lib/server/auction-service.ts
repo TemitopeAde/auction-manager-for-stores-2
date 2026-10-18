@@ -1816,7 +1816,7 @@ export const searchDashboardProducts = webMethod(
       return {
         id: productId,
         name: product.name || 'Untitled product',
-        sku: product.sku || product.ribbon || '-',
+        sku: getStringValue(product.sku) ?? '-',
         auctions: linkedAuctions,
       };
     });

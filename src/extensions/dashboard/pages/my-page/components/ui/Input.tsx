@@ -121,7 +121,7 @@ export const NumberInput: FC<NumberInputProps> = ({
       disabled={disabled}
       prefix={prefix}
       suffix={suffix}
-      className={className}
+      className={[className, hideStepper ? styles.hideStepper : undefined].filter(Boolean).join(' ')}
       wrapperStyle={wrapperStyle}
       {...rest}
     />

@@ -15,7 +15,7 @@ const editorElementWithDefaults = withEditorElementDefaults(
 
 export default extensions.editorReactComponent({
   id: '343387e9-42c4-4d5f-b747-008cc27facb5',
-  type: 'AuctionProducts',
+  type: 'HiKonsultsSmartAuctionManager.AuctionProducts',
   displayName: 'Auction Products',
   description: 'A grid of store products on auction with live status, countdown, current bid, search and filters, and a bid form so visitors can place bids.',
   editorElement: merge(

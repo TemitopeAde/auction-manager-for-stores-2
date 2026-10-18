@@ -3050,9 +3050,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                                 render: (row: DashboardProductRow) => (
                                   <Box direction="vertical" gap="2px">
                                     <Text weight="bold">{row.name}</Text>
-                                    <Text size="tiny" secondary>
-                                      ID: {row.id}
-                                    </Text>
                                   </Box>
                                 ),
                               },
@@ -3670,9 +3667,9 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
               infoContent="The minimum amount the first bid must be."
             >
               <NumberInput
-                value={form.startingPrice}
+                value={form.startingPrice || undefined}
                 onChange={(value) =>
-                  updateFormField('startingPrice', value ?? form.startingPrice)
+                  updateFormField('startingPrice', value ?? 0)
                 }
                 min={1}
                 hideStepper
@@ -3685,7 +3682,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
               infoContent="The minimum price required for the auction to be successful. If not met, the auction ends without a winner."
             >
               <NumberInput
-                value={form.reservePrice ?? undefined}
+                value={form.reservePrice || undefined}
                 onChange={(value) =>
                   updateFormField('reservePrice', value ?? null)
                 }

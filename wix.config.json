@@ -2,5 +2,6 @@
   "appId": "386a20a7-69ff-46a2-bc5b-2c2ce9eb7a78",
   "projectId": "auction-manager-for-stores-2",
   "namespace": "@hi-konsult/smart-auction-manager",
-  "projectType": "App"
+  "projectType": "App",
+  "codeIdentifier": "HiKonsultsSmartAuctionManager"
 }

@@ -46,6 +46,17 @@
   cursor: not-allowed;
 }
 
+.hideStepper {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.hideStepper::-webkit-inner-spin-button,
+.hideStepper::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .affix {
   display: flex;
   align-items: center;

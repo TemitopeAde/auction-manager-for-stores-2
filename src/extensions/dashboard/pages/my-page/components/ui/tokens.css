@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap');
+
+/* ─── design tokens ─────────────────────────────────── */
+:root {
+  --ui-bg:           #ffffff;
+  --ui-fg:           #15161a;
+  --ui-canvas:       #f5f4ef;
+  --ui-muted:        #f1efe8;
+  --ui-muted-fg:     #5e6068;
+  --ui-border:       #e6e4dc;
+  --ui-border-soft:  #f0eee7;
+  --ui-input:        #e6e4dc;
+  --ui-ring:         #c2410c;
+  --ui-primary:      #c2410c;
+  --ui-primary-hover:#9a3412;
+  --ui-primary-fg:   #ffffff;
+  --ui-primary-soft: #fbede4;
+  --ui-ink:          #15161a;
+  --ui-secondary:    #f1efe8;
+  --ui-secondary-fg: #15161a;
+  --ui-destructive:  #dc2626;
+  --ui-destructive-fg: #ffffff;
+  --ui-success:      #0f766e;
+  --ui-success-soft: #e3f2ef;
+  --ui-success-fg:   #ffffff;
+  --ui-warning:      #d97706;
+  --ui-warning-soft: #fceedd;
+  --ui-warning-fg:   #15161a;
+  --ui-info:         #2f4db3;
+  --ui-info-soft:    #e8edfb;
+  --ui-accent:       #f1efe8;
+  --ui-accent-fg:    #15161a;
+  --ui-radius:       0.875rem;
+  --ui-radius-sm:    0.625rem;
+  --ui-radius-lg:    1rem;
+  --ui-shadow-sm:    0 1px 2px 0 rgb(21 22 26 / 0.04);
+  --ui-shadow:       0 1px 3px 0 rgb(21 22 26 / 0.06), 0 8px 24px -12px rgb(21 22 26 / 0.12);
+  --ui-font:         'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ui-font-display: 'Bricolage Grotesque', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --ui-font-mono:    'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui-font-size-xs: 0.75rem;
+  --ui-font-size-sm: 0.875rem;
+  --ui-font-size-md: 1rem;
+  --ui-font-size-lg: 1.125rem;
+  --ui-font-size-xl: 1.25rem;
+  --ui-font-size-2xl:1.5rem;
+}
+

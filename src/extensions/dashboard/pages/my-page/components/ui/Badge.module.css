@@ -1,0 +1,72 @@
+@import './tokens.css';
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 9999px;
+  font-family: var(--ui-font);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: colors 0.15s ease;
+}
+
+/* Sizes */
+.tiny {
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+}
+
+.small {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+}
+
+.medium {
+  padding: 4px 12px;
+  font-size: 0.8125rem;
+}
+
+/* Skins / Variants */
+.standard, .general {
+  background: var(--ui-muted);
+  color: var(--ui-muted-fg);
+  border-color: var(--ui-border);
+}
+
+.neutralStandard {
+  background: #eeeeea;
+  color: #52555d;
+  border-color: transparent;
+}
+
+.success {
+  background: #e3f2ef;
+  color: #0f5f58;
+  border-color: transparent;
+}
+
+.warning {
+  background: #fceedd;
+  color: #8a4000;
+  border-color: transparent;
+}
+
+.danger, .destructive {
+  background: #fbe9e7;
+  color: #9f2a1c;
+  border-color: transparent;
+}
+
+.premium {
+  background: var(--ui-primary-soft);
+  color: #9a3412;
+  border-color: transparent;
+}
+
+.uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

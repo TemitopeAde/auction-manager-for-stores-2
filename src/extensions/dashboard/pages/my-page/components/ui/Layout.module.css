@@ -1,0 +1,18 @@
+.layout {
+  display: grid;
+  width: 100%;
+}
+
+.cell {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr !important;
+  }
+  .cell {
+    grid-column: span 1 !important;
+  }
+}
+

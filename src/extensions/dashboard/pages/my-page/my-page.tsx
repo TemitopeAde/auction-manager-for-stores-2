@@ -1,24 +1,28 @@
 import type { FC } from 'react';
-import { EmptyState, Page, WixDesignSystemProvider } from '@wix/design-system';
-import '@wix/design-system/styles.global.css';
+import { AuctionDashboardApp } from './components/AuctionDashboardApp';
 
 const DashboardPage: FC = () => {
   return (
-    <WixDesignSystemProvider>
-      <Page>
-        <Page.Header
-          title="My Page"
-          subtitle="This is a subtitle for your page"
-        />
-        <Page.Content>
-          <EmptyState
-            title="My Page"
-            subtitle="Edit src/extensions/dashboard/pages/my-page/my-page.tsx to change this text."
-            skin="page"
-          />
-        </Page.Content>
-      </Page>
-    </WixDesignSystemProvider>
+    <>
+      <style>
+        {`
+          html,
+          body,
+          #root {
+            background: #f8fafc !important;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+          * {
+            box-sizing: border-box;
+          }
+        `}
+      </style>
+      <AuctionDashboardApp />
+    </>
   );
 };
 

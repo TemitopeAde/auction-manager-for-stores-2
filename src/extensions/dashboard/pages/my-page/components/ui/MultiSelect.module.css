@@ -1,0 +1,130 @@
+@import './tokens.css';
+
+.container {
+  position: relative;
+  width: 100%;
+  font-family: var(--ui-font);
+}
+
+.box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 4px 8px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-input);
+  border-radius: var(--ui-radius-sm);
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.box:focus-within {
+  border-color: var(--ui-ring);
+  box-shadow: 0 0 0 1px var(--ui-ring);
+}
+
+.box.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--ui-muted);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--ui-muted);
+  color: var(--ui-fg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  max-width: 100%;
+}
+
+.tagLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagRemove {
+  background: transparent;
+  border: none;
+  color: var(--ui-muted-fg);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.tagRemove:hover {
+  color: var(--ui-destructive);
+}
+
+.input {
+  flex: 1 1 120px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--ui-fg);
+  height: 28px;
+  padding: 0 4px;
+}
+
+.input::placeholder {
+  color: var(--ui-muted-fg);
+  opacity: 0.7;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  box-shadow: var(--ui-shadow);
+  z-index: 100;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: var(--ui-fg);
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s ease;
+}
+
+.option:hover {
+  background: var(--ui-muted);
+}
+
+.emptyState {
+  padding: 12px;
+  font-size: 0.8125rem;
+  color: var(--ui-muted-fg);
+  text-align: center;
+}
+

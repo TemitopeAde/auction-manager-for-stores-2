@@ -1,0 +1,58 @@
+@import './tokens.css';
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--ui-font);
+  font-size: 0.875rem;
+  color: var(--ui-fg);
+  line-height: 1.4;
+}
+
+.label.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cfccc2;
+  border-radius: 5px;
+  background: var(--ui-bg);
+  cursor: pointer;
+  position: relative;
+  display: inline-grid;
+  place-content: center;
+  transition: all 0.15s ease;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.checkbox:checked {
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+.checkbox:checked::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ui-bg), 0 0 0 4px var(--ui-ring);
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+}

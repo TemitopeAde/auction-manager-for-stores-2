@@ -1,0 +1,90 @@
+@import './tokens.css';
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--ui-font);
+  font-weight: 600;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+  outline: none;
+}
+.btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--ui-bg), 0 0 0 4px var(--ui-ring);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Sizes */
+.xs  { height: 28px; padding: 0 10px; font-size: 0.75rem; }
+.sm  { height: 32px; padding: 0 12px; font-size: 0.8125rem; }
+.md  { height: 40px; padding: 0 16px; font-size: 0.875rem; }
+.lg  { height: 44px; padding: 0 20px; font-size: 1rem; }
+
+/* Variants */
+.default {
+  background: var(--ui-primary);
+  color: var(--ui-primary-fg);
+  border-color: var(--ui-primary);
+}
+.default:hover:not(:disabled) {
+  background: var(--ui-primary-hover);
+  border-color: var(--ui-primary-hover);
+}
+
+.secondary, .outline {
+  background: var(--ui-bg);
+  color: var(--ui-secondary-fg);
+  border-color: var(--ui-border);
+}
+.secondary:hover:not(:disabled),
+.outline:hover:not(:disabled) {
+  background: var(--ui-muted);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--ui-fg);
+  border-color: transparent;
+}
+.ghost:hover:not(:disabled) {
+  background: var(--ui-muted);
+}
+
+.destructive {
+  background: var(--ui-destructive);
+  color: var(--ui-destructive-fg);
+  border-color: var(--ui-destructive);
+}
+.destructive:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.link {
+  background: none;
+  border-color: transparent;
+  color: var(--ui-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+  height: auto;
+}
+.link:hover:not(:disabled) { opacity: 0.75; }
+
+/* Icon wrapper */
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+

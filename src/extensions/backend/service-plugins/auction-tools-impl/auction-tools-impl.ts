@@ -22,12 +22,14 @@ toolsProvider.provideHandlers({
     try {
       return { response: await handler(request.payload ?? {}) };
     } catch (error) {
+      const message = error instanceof Error ? error.message : `The ${methodName} tool failed.`;
       if (!(error instanceof ToolInputError)) {
-        console.error(`[aria-tools] ${methodName} failed`, { requestId: metadata?.requestId, error });
+        console.error(`[aria-tools] ${methodName} failed`, { requestId: metadata?.requestId, message, error });
       }
-      // Service errors (plan limits, product already linked, etc.) are written
-      // for people, so pass them through for Aria to relay.
-      throw new Error(error instanceof Error ? error.message : `The ${methodName} tool failed.`);
+      // Return the failure as data instead of throwing: a thrown error reaches
+      // Aria only as a generic failure, while this lets Aria tell the user what
+      // went wrong (plan limit, product already linked, missing permission...).
+      return { response: { error: message, requestId: metadata?.requestId ?? null } };
     }
   },
 });

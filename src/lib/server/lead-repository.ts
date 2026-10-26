@@ -1,5 +1,4 @@
-import { items } from '@wix/data';
-import { queryAll } from './wix-data-utils';
+import { elevatedItems as items, queryAll } from './wix-data-utils';
 import type { LeadRecord } from '../auction/types';
 
 export const LEADS_COLLECTION_ID = '@hi-konsult/smart-auction-manager/Leads';

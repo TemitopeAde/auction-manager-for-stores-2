@@ -5,13 +5,16 @@ import type {
   AuctionView,
   BidSummary,
 } from '../auction/types';
-import { EMPTY_AUCTION_INPUT } from '../auction/defaults';
+import { DEFAULT_SETTINGS, EMPTY_AUCTION_INPUT } from '../auction/defaults';
+import { saveConfigurationSettings } from './configuration-repository';
+import { findAuctionsByProductIds } from './auction-repository';
 import {
   createAuctionFromProduct,
+  getAuctionSummary,
+  getAuctionView,
+  withoutDashboardPayload,
   getSettings,
-  loadDashboard,
   runAuctionAction,
-  saveSettings,
   searchAuctionBids,
   searchDashboardAuctions,
   searchDashboardLeads,
@@ -151,8 +154,8 @@ function toBidSummaryDto(bid: BidSummary) {
   };
 }
 
-function findAuction(auctions: Array<AuctionView>, auctionId: string): AuctionView {
-  const auction = auctions.find((item) => item.id === auctionId);
+async function requireAuctionView(auctionId: string): Promise<AuctionView> {
+  const auction = await getAuctionView(auctionId);
   if (!auction) {
     throw new ToolInputError(`Auction ${auctionId} was not found.`);
   }
@@ -184,19 +187,14 @@ function readAuctionFields(payload: Payload): Partial<AuctionInput> {
 }
 
 async function getAuctionOverview() {
-  const dashboard = await loadDashboard();
-  const endingSoon = dashboard.auctions
+  const { settings, auctions, summary } = await getAuctionSummary();
+  const nextToEnd = auctions
     .filter((auction) => auction.status === 'endingSoon' || auction.status === 'live')
     .sort((left, right) => (left.endTime || '9999').localeCompare(right.endTime || '9999'))
     .slice(0, 5)
     .map(toAuctionSummary);
 
-  return {
-    currency: dashboard.currency || null,
-    planTier: dashboard.settings.planTier,
-    summary: dashboard.summary,
-    nextToEnd: endingSoon,
-  };
+  return { planTier: settings.planTier, summary, nextToEnd };
 }
 
 async function listAuctions(payload: Payload) {
@@ -259,20 +257,22 @@ async function createAuction(payload: Payload) {
 
   const publish = readBoolean(payload, 'publish') ?? false;
   const startTime = fields.startTime ?? new Date().toISOString();
-  const dashboard = await createAuctionFromProduct(productId, {
-    ...EMPTY_AUCTION_INPUT,
-    ...fields,
-    startTime,
-    // The feature spec's default duration; the service itself treats a missing end as open-ended.
-    endTime: fields.endTime ?? new Date(new Date(startTime).getTime() + DEFAULT_DURATION_MS).toISOString(),
-    lifecycle: publish ? 'published' : 'draft',
-  });
+  await withoutDashboardPayload(() =>
+    createAuctionFromProduct(productId, {
+      ...EMPTY_AUCTION_INPUT,
+      ...fields,
+      startTime,
+      // The feature spec's default duration; the service itself treats a missing end as open-ended.
+      endTime: fields.endTime ?? new Date(new Date(startTime).getTime() + DEFAULT_DURATION_MS).toISOString(),
+      lifecycle: publish ? 'published' : 'draft',
+    }),
+  );
 
-  const created = dashboard.auctions
-    .filter((auction) => auction.productIds.includes(productId))
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
-
-  return { auction: created ? toAuctionSummary(created) : null };
+  const created = (await findAuctionsByProductIds([productId])).sort((left, right) =>
+    right.createdAt.localeCompare(left.createdAt),
+  )[0];
+  const view = created ? await getAuctionView(created.id) : null;
+  return { auction: view ? toAuctionSummary(view) : null };
 }
 
 async function updateAuctionTool(payload: Payload) {
@@ -282,8 +282,8 @@ async function updateAuctionTool(payload: Payload) {
     throw new ToolInputError('Provide at least one field to update.');
   }
 
-  const dashboard = await updateAuction(auctionId, fields);
-  return { auction: toAuctionSummary(findAuction(dashboard.auctions, auctionId)) };
+  await withoutDashboardPayload(() => updateAuction(auctionId, fields));
+  return { auction: toAuctionSummary(await requireAuctionView(auctionId)) };
 }
 
 async function runLifecycleAction(payload: Payload) {
@@ -293,8 +293,8 @@ async function runLifecycleAction(payload: Payload) {
     throw new ToolInputError(`"action" must be one of: ${LIFECYCLE_ACTIONS.join(', ')}.`);
   }
 
-  const dashboard = await runAuctionAction(auctionId, action as LifecycleAction);
-  return { auction: toAuctionSummary(findAuction(dashboard.auctions, auctionId)) };
+  await withoutDashboardPayload(() => runAuctionAction(auctionId, action as LifecycleAction));
+  return { auction: toAuctionSummary(await requireAuctionView(auctionId)) };
 }
 
 async function searchLeads(payload: Payload) {
@@ -319,18 +319,18 @@ async function searchLeads(payload: Payload) {
 }
 
 async function updateSettings(payload: Payload) {
-  const current = await getSettings();
   const changes: Partial<AppSettings> = {};
 
   for (const key of EDITABLE_SETTINGS) {
     if (!(key in payload)) {
       continue;
     }
-    const currentValue = current[key];
+    // Validate against the setting's type in the defaults, so no read is needed first.
+    const defaultValue = DEFAULT_SETTINGS[key];
     const nextValue =
-      typeof currentValue === 'boolean'
+      typeof defaultValue === 'boolean'
         ? readBoolean(payload, key)
-        : typeof currentValue === 'number'
+        : typeof defaultValue === 'number'
           ? readNumber(payload, key)
           : typeof payload[key] === 'string'
             ? (payload[key] as string).trim()
@@ -346,8 +346,9 @@ async function updateSettings(payload: Payload) {
     throw new ToolInputError(`Provide at least one setting to change: ${EDITABLE_SETTINGS.join(', ')}.`);
   }
 
-  // saveSettings fills gaps from defaults, so merge onto the current settings.
-  const saved = await saveSettings({ ...current, ...changes });
+  // One read and one write: saveConfigurationSettings merges onto the stored
+  // settings itself, so this stays fast enough for a Tools Provider call.
+  const saved = await saveConfigurationSettings(changes);
   return { updated: Object.keys(changes), settings: saved };
 }
 

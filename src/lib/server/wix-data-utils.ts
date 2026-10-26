@@ -1,4 +1,21 @@
 import { items } from '@wix/data';
+import { auth } from '@wix/essentials';
+
+/**
+ * Wix Data calls made with the app's identity. Every caller of the
+ * repositories authorizes the request first (dashboard RPC: Wix users only;
+ * site endpoints: member resolved server-side; Tools Provider: no visitors or
+ * members), so data access itself doesn't depend on who triggered it. This
+ * also makes calls from Aria's Tools Provider work, which have no site-owner
+ * browser session behind them.
+ */
+export const elevatedItems = {
+  query: auth.elevate(items.query),
+  get: auth.elevate(items.get),
+  insert: auth.elevate(items.insert),
+  update: auth.elevate(items.update),
+  remove: auth.elevate(items.remove),
+};
 
 const WIX_DATA_PAGE_SIZE = 1000;
 const WIX_DATA_MAX_PAGES = 100;

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Permissions, webMethod } from './permissions';
 import { checkout } from '@wix/ecom';
 import { catalogVersioning, products, productsV3 } from '@wix/stores';
@@ -327,7 +328,7 @@ function isSameBidder(left: BidInput | BidRecord, right: BidInput | BidRecord): 
 
 async function readSiteDisplayName(): Promise<string | null> {
   try {
-    const props = await siteProperties.getSiteProperties({
+    const props = await auth.elevate(siteProperties.getSiteProperties)({
       fields: ['siteDisplayName'],
     });
 
@@ -340,7 +341,7 @@ async function readSiteDisplayName(): Promise<string | null> {
 
 async function readSiteCurrency(): Promise<string> {
   try {
-    const props = await siteProperties.getSiteProperties({
+    const props = await auth.elevate(siteProperties.getSiteProperties)({
       fields: ['paymentCurrency'],
     });
 
@@ -1385,7 +1386,76 @@ async function buildPublicAuctions(): Promise<AuctionView[]> {
     }));
 }
 
+/**
+ * A lightweight overview for Aria's tools: three reads in parallel and no
+ * writes. `buildDashboardPayload` is too slow for a Tools Provider call (it
+ * reads every collection one after another and de-duplicates leads), so Wix
+ * times the call out. Leads are counted as distinct bidder emails, which is
+ * what a lead represents, without touching the Leads collection.
+ */
+export async function getAuctionSummary(): Promise<{
+  settings: AppSettings;
+  auctions: AuctionView[];
+  summary: DashboardPayload['summary'];
+}> {
+  const [settings, auctionRecords, allBids] = await Promise.all([
+    readSettings(),
+    listAuctionRecords(),
+    listAllBids(),
+  ]);
+  const auctions = mapAuctions(auctionRecords, allBids, settings, Date.now());
+  const auctionIds = new Set(auctions.map((auction) => auction.id));
+  const auctionBids = allBids.filter((bid) => auctionIds.has(bid.auctionId));
+
+  return {
+    settings,
+    auctions,
+    summary: {
+      totalAuctions: auctions.length,
+      activeAuctions: countActiveAuctions(auctions),
+      endingSoon: auctions.filter((auction) => auction.status === 'endingSoon').length,
+      totalBids: auctionBids.length,
+      totalLeads: new Set(auctionBids.map((bid) => normalizeEmail(bid.bidderEmail)).filter(Boolean)).size,
+    },
+  };
+}
+
+/**
+ * Inside `withoutDashboardPayload`, mutations skip the full dashboard rebuild
+ * they normally return. Aria's tools use this: they read back only the record
+ * they changed, which keeps each call inside the Tools Provider time limit.
+ */
+const skipDashboardPayload = new AsyncLocalStorage<true>();
+
+export function withoutDashboardPayload<T>(fn: () => Promise<T>): Promise<T> {
+  return skipDashboardPayload.run(true, fn);
+}
+
+/** One auction as the dashboard shows it, without loading every auction. */
+export async function getAuctionView(auctionId: string): Promise<AuctionView | null> {
+  const [settings, record, bids] = await Promise.all([
+    readSettings(),
+    getAuctionRecordById(auctionId),
+    listBidsByAuctionId(auctionId),
+  ]);
+  return record ? mapAuctions([record], bids, settings, Date.now())[0] ?? null : null;
+}
+
 async function buildDashboardPayload(): Promise<DashboardPayload> {
+  if (skipDashboardPayload.getStore()) {
+    // Callers in this mode ignore the payload; return a valid empty one.
+    return {
+      generatedAt: new Date().toISOString(),
+      settings: DEFAULT_SETTINGS,
+      installedPlan: null,
+      auctions: [],
+      notifications: [],
+      leads: [],
+      currency: '',
+      summary: { totalAuctions: 0, activeAuctions: 0, endingSoon: 0, totalBids: 0, totalLeads: 0 },
+    };
+  }
+
   const [settings, installedPlan] = await Promise.all([
     readSettings(),
     readInstalledAppPlan(),

@@ -1,5 +1,4 @@
-import { items } from '@wix/data';
-import { queryAll } from './wix-data-utils';
+import { elevatedItems as items, queryAll } from './wix-data-utils';
 import type { NotificationRecord } from '../auction/types';
 
 export const NOTIFICATIONS_COLLECTION_ID = '@hi-konsult/smart-auction-manager/Notifications';

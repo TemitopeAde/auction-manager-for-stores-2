@@ -1,5 +1,4 @@
-import { items } from '@wix/data';
-import { queryAll } from './wix-data-utils';
+import { elevatedItems as items, queryAll } from './wix-data-utils';
 
 import type { AuctionInput, AuctionLifecycle, AuctionRecord } from '../auction/types';
 

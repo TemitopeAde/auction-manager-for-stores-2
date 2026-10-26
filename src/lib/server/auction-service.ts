@@ -82,7 +82,10 @@ import type {
   WinnerActionPayload,
   WinnerPaymentDetails,
 } from '../auction/types';
-import type { SitePluginPlacementStatusResult } from '../site-plugins/catalog';
+import {
+  SITE_PLUGIN_DEFINITIONS,
+  type SitePluginPlacementStatusResult,
+} from '../site-plugins/catalog';
 import {
   createAuctionRecord,
   deleteAuctionRecord,
@@ -1556,11 +1559,20 @@ export const getSitePluginPlacementStatus = webMethod(
       const elevatedGetPlacementStatus = auth.elevate(plugins.getPlacementStatus);
       const response = await elevatedGetPlacementStatus();
 
+      const definitionMap = new Map(
+        SITE_PLUGIN_DEFINITIONS.map((def) => [def.id, def]),
+      );
+
       return {
-        placementStatuses: (response.placementStatuses || []).map((item) => ({
-          pluginId: String(item.pluginId || ''),
-          placedInSlot: Boolean(item.placedInSlot),
-        })),
+        placementStatuses: (response.placementStatuses || []).map((item) => {
+          const pluginId = String(item.pluginId || '');
+          const def = definitionMap.get(pluginId);
+          return {
+            pluginId,
+            placedInSlot: Boolean(item.placedInSlot),
+            name: def?.name,
+          };
+        }),
       };
     } catch (error) {
       console.error('[auction] getSitePluginPlacementStatus failed', error);
@@ -1682,7 +1694,7 @@ export const searchDashboardAuctions = webMethod(
       });
     }
 
-    const paged = paginateRows(results, input.page, input.pageSize);
+    const paged = paginateRows(results, input.page, input.pageSize ?? 50);
 
     console.log(
       '[auction] searchDashboardAuctions',

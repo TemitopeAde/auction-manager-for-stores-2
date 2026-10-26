@@ -560,6 +560,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 5;
+  const auctionsPerPage = 50;
   const [auctionTotal, setAuctionTotal] = useState(0);
   const [leadPage, setLeadPage] = useState(1);
   const [leadTotal, setLeadTotal] = useState(0);
@@ -588,8 +589,8 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const [pluginPlacementResult, setPluginPlacementResult] =
     useState<SitePluginPlacementStatusResult | null>(null);
   const [isPluginStatusLoading, setIsPluginStatusLoading] = useState(false);
-  const [addingPluginId, setAddingPluginId] = useState<string | null>(null);
-  const [addedProductPagePluginId, setAddedProductPagePluginId] = useState<string | null>(null);
+  const [placingPluginId, setPlacingPluginId] = useState<string | null>(null);
+  const [placedPluginIds, setPlacedPluginIds] = useState<Set<string>>(() => new Set());
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [viewingBidsAuctionId, setViewingBidsAuctionId] = useState<string | null>(null);
   const [auctionSearch, setAuctionSearch] = useState<string>('');
@@ -897,12 +898,12 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         status: auctionStatusFilter,
         lifecycle: auctionLifecycleFilter,
         page: currentPage,
-        pageSize: itemsPerPage,
+        pageSize: auctionsPerPage,
       });
       if (requestId !== auctionRequestId.current) return;
       setAuctionTotal(results.total);
       setAuctionResults(results.rows);
-      const lastPage = Math.max(1, Math.ceil(results.total / itemsPerPage));
+      const lastPage = Math.max(1, Math.ceil(results.total / auctionsPerPage));
       if (currentPage > lastPage) setCurrentPage(lastPage);
     } catch (error) {
       if (requestId === auctionRequestId.current) {
@@ -1235,11 +1236,14 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
     const knownIds = new Set(SITE_PLUGIN_DEFINITIONS.map((plugin) => plugin.id));
 
     // A site has only one product page, so once a product page plugin is placed
-    // (or was just added from here) list only that one and hide the other.
+    // (or was just placed from here) list only that one and hide the other.
     const placedProductPagePluginId =
       statuses.find(
-        (status) => PRODUCT_PAGE_PLUGIN_IDS.has(status.pluginId) && status.placedInSlot === true,
-      )?.pluginId ?? addedProductPagePluginId;
+        (status) =>
+          PRODUCT_PAGE_PLUGIN_IDS.has(status.pluginId) &&
+          (status.placedInSlot === true || placedPluginIds.has(status.pluginId)),
+      )?.pluginId ??
+      Array.from(placedPluginIds).find((id) => PRODUCT_PAGE_PLUGIN_IDS.has(id));
 
     const filteredDefinitions = SITE_PLUGIN_DEFINITIONS.filter(
       (definition) =>
@@ -1254,9 +1258,9 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         return {
           pluginId: definition.id,
           name: definition.name,
-          // Placement status can lag right after adding, so trust the add we just made.
+          // Placement status can lag right after placing, so trust the placement we just made.
           placedInSlot:
-            definition.id === addedProductPagePluginId ? true : status?.placedInSlot ?? null,
+            placedPluginIds.has(definition.id) ? true : status?.placedInSlot ?? null,
           definition,
         };
       }),
@@ -1264,40 +1268,105 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         .filter((status) => !knownIds.has(status.pluginId))
         .map((status) => ({
           pluginId: status.pluginId,
-          name: 'Other app plugin',
-          placedInSlot: status.placedInSlot,
+          name: status.name || 'Site Plugin',
+          placedInSlot:
+            placedPluginIds.has(status.pluginId) ? true : status.placedInSlot,
         })),
     ];
-  }, [addedProductPagePluginId, pluginPlacementResult]);
+  }, [placedPluginIds, pluginPlacementResult]);
 
-  const handleAddSitePlugin = useCallback(
-    async (plugin: SitePluginDefinition): Promise<void> => {
-      if (addingPluginId) {
+  const handlePlaceSitePlugin = useCallback(
+    async (row: SitePluginRow): Promise<void> => {
+      if (placingPluginId) {
         return;
       }
 
-      setAddingPluginId(plugin.id);
+      setPlacingPluginId(row.pluginId);
 
       try {
-        await dashboard.addSitePlugin(plugin.id, { placement: plugin.placement });
-        if (PRODUCT_PAGE_PLUGIN_IDS.has(plugin.id)) {
-          setAddedProductPagePluginId(plugin.id);
+        const options: {
+          slotId?: string;
+          placement?: {
+            appDefinitionId: string;
+            widgetId: string;
+            slotId: string;
+          };
+        } = {};
+
+        if (row.definition?.slotId) {
+          options.slotId = row.definition.slotId;
         }
+        if (row.definition?.placement) {
+          options.placement = row.definition.placement;
+          if (!options.slotId && row.definition.placement.slotId) {
+            options.slotId = row.definition.placement.slotId;
+          }
+        }
+
+        await dashboard.addSitePlugin(
+          row.pluginId,
+          Object.keys(options).length > 0 ? options : undefined,
+        );
+
+        setPlacedPluginIds((prev) => {
+          const next = new Set(prev);
+          next.add(row.pluginId);
+          return next;
+        });
+
         await refreshPluginPlacementStatus();
         dashboard.showToast({
-          message: `${plugin.name} was added to the site.`,
+          message: `${row.name} was successfully placed on the site.`,
           type: 'success',
         });
       } catch (error) {
+        console.error('[Dashboard] Error placing site plugin:', error);
+
+        let message = 'Unable to place the site plugin.';
+        let toastType: 'error' | 'warning' = 'error';
+
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+          const code = (error as { code: number }).code;
+          switch (code) {
+            case 3001:
+              message = 'The slot for this plugin is already occupied.';
+              break;
+            case 3002:
+              message = 'The target slot was not found on your site.';
+              break;
+            case 3003:
+              message = 'An error occurred while placing the plugin.';
+              break;
+            case 3004:
+              message = 'An error occurred while replacing an existing plugin.';
+              break;
+            case 3005:
+              message = 'Failed to load plugin placement modal data.';
+              break;
+            case 3006:
+              message = 'Plugin placement was canceled.';
+              toastType = 'warning';
+              break;
+            case 3007:
+              message =
+                'The site must be published before placing plugins. Please publish the site first.';
+              break;
+            default:
+              message = error instanceof Error ? error.message : 'Unable to place the site plugin.';
+          }
+        } else if (error instanceof Error) {
+          message = error.message;
+        }
+
         dashboard.showToast({
-          message: error instanceof Error ? error.message : 'Unable to add the site plugin.',
-          type: 'error',
+          message,
+          type: toastType,
         });
       } finally {
-        setAddingPluginId(null);
+        setPlacingPluginId(null);
       }
     },
-    [addingPluginId, refreshPluginPlacementStatus],
+    [placingPluginId, refreshPluginPlacementStatus],
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -3127,7 +3196,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                     </Tooltip>
                     <Pagination
                       currentPage={currentPage}
-                      totalPages={Math.ceil(auctionTotal / itemsPerPage) || 1}
+                      totalPages={Math.ceil(auctionTotal / auctionsPerPage) || 1}
                       onChange={(e) => setCurrentPage(e.page)}
                     />
                   </Box>
@@ -4074,7 +4143,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                 size="small"
                 priority="secondary"
                 prefixIcon={<Icons.Refresh />}
-                disabled={isPluginStatusLoading || addingPluginId !== null}
+                disabled={isPluginStatusLoading || placingPluginId !== null}
                 onClick={() => void refreshPluginPlacementStatus()}
               >
                 Refresh status
@@ -4091,58 +4160,59 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
             ) : isPluginStatusLoading && !pluginPlacementResult ? (
               <Loader size="small" />
             ) : pluginPlacementResult ? (
-              <Table
-                data={sitePluginRows}
-                columns={[
-                  {
-                    title: 'Plugin',
-                    render: (row) => row.name,
-                  },
-                  {
-                    title: 'Plugin ID',
-                    render: (row) => <Text size="tiny">{row.pluginId}</Text>,
-                  },
-                  {
-                    title: 'Placement status',
-                    render: (row) => (
-                      <Badge
-                        size="medium"
-                        skin={
-                          row.placedInSlot === true
-                            ? 'success'
-                            : row.placedInSlot === false
-                              ? 'warning'
-                              : 'neutralStandard'
-                        }
-                        uppercase={false}
-                      >
-                        {row.placedInSlot === true
-                          ? 'Placed'
-                          : row.placedInSlot === false
-                            ? 'Not placed'
-                            : 'Not reported'}
-                      </Badge>
-                    ),
-                  },
-                  {
-                    title: 'Action',
-                    render: (row) => {
-                      const definition = row.definition;
-                      return row.placedInSlot === false && definition ? (
-                        <Button
-                          size="small"
-                          disabled={addingPluginId !== null || isPluginStatusLoading}
-                          onClick={() => void handleAddSitePlugin(definition)}
-                        >
-                          {addingPluginId === row.pluginId ? 'Adding…' : 'Add'}
-                        </Button>
-                      ) : null;
+              sitePluginRows.length === 0 ? (
+                <Box padding="24px">
+                  <Text secondary>No site plugins found for this app.</Text>
+                </Box>
+              ) : (
+                <Table
+                  data={sitePluginRows}
+                  columns={[
+                    {
+                      title: 'Plugin',
+                      render: (row) => row.name,
                     },
-                  },
-                ]}
-              >
-                <Table.Content />
-              </Table>
+                    {
+                      title: 'Placement status',
+                      render: (row) => (
+                        <Badge
+                          size="medium"
+                          skin={
+                            row.placedInSlot === true
+                              ? 'success'
+                              : row.placedInSlot === false
+                                ? 'warning'
+                                : 'neutralStandard'
+                          }
+                          uppercase={false}
+                        >
+                          {row.placedInSlot === true
+                            ? 'Placed'
+                            : row.placedInSlot === false
+                              ? 'Not placed'
+                              : 'Not reported'}
+                        </Badge>
+                      ),
+                    },
+                    {
+                      title: 'Action',
+                      render: (row) => {
+                        return row.placedInSlot === false ? (
+                          <Button
+                            size="small"
+                            disabled={placingPluginId !== null || isPluginStatusLoading}
+                            onClick={() => void handlePlaceSitePlugin(row)}
+                          >
+                            {placingPluginId === row.pluginId ? 'Placing…' : 'Place'}
+                          </Button>
+                        ) : null;
+                      },
+                    },
+                  ]}
+                >
+                  <Table.Content />
+                </Table>
+              )
             ) : null}
           </Card.Content>
         </Card>

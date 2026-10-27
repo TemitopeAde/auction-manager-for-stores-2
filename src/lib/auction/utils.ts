@@ -69,16 +69,21 @@ export function formatCurrency(value: number | null, currencyCode?: string): str
     return 'No bids yet';
   }
 
+  // Whole amounts stay compact (€2); fractional ones keep cents (€1.50).
+  const fractionDigits = Number.isInteger(value) ? 0 : 2;
+
   if (!currencyCode) {
     return new Intl.NumberFormat('en-US', {
-      maximumFractionDigits: 0,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(value);
   }
 
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currencyCode,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value);
 }
 

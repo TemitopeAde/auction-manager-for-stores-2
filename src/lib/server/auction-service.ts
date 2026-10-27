@@ -1312,6 +1312,9 @@ async function fetchStoreProductByIdForPublic(
   return null;
 }
 
+const PUBLIC_PRODUCT_QUERY_CHUNK_SIZE = 100;
+const PUBLIC_PRODUCT_FALLBACK_CONCURRENCY = 5;
+
 async function getStoreProductsByIdsForPublic(ids: string[]): Promise<PublicAuctionProduct[]> {
   if (ids.length === 0) {
     return [];
@@ -1329,16 +1332,56 @@ async function getStoreProductsByIdsForPublic(ids: string[]): Promise<PublicAuct
     return [];
   }
 
-  const productsById = await Promise.all(
-    ids.map((id) =>
-      fetchStoreProductByIdForPublic(id, catalogVersion).catch((error) => {
-        console.warn('[auction] failed to load public auction product', { id, error });
-        return null;
-      }),
-    ),
-  );
+  // Batch-query by ID: one getProduct call per product gets throttled on large
+  // catalogs and silently drops products, which breaks pagination and search.
+  const productsById = new Map<string, PublicAuctionProduct>();
+  for (let start = 0; start < ids.length; start += PUBLIC_PRODUCT_QUERY_CHUNK_SIZE) {
+    const chunk = ids.slice(start, start + PUBLIC_PRODUCT_QUERY_CHUNK_SIZE);
+    try {
+      const result = catalogVersion === 'V3_CATALOG'
+        ? await auth.elevate(productsV3.queryProducts)().in('_id', chunk).limit(chunk.length).find()
+        : await auth.elevate(products.queryProducts)().in('_id', chunk).limit(chunk.length).find();
+      for (const rawProduct of result.items ?? []) {
+        const product = normalizePublicProduct(rawProduct);
+        if (product.id) {
+          productsById.set(product.id, product);
+        }
+      }
+    } catch (error) {
+      console.warn('[auction] batch public product query failed, falling back to single reads', error);
+    }
+  }
 
-  return productsById.filter(Boolean).map(normalizePublicProduct);
+  const missingIds = ids.filter((id) => !productsById.has(id));
+  for (let start = 0; start < missingIds.length; start += PUBLIC_PRODUCT_FALLBACK_CONCURRENCY) {
+    const batch = missingIds.slice(start, start + PUBLIC_PRODUCT_FALLBACK_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (id) => {
+        try {
+          const rawProduct = await fetchStoreProductByIdForPublic(id, catalogVersion);
+          if (rawProduct) {
+            productsById.set(id, normalizePublicProduct(rawProduct));
+          }
+        } catch (error) {
+          console.warn('[auction] failed to load public auction product', { id, error });
+        }
+      }),
+    );
+  }
+
+  const unresolvedIds = ids.filter((id) => !productsById.has(id));
+  if (unresolvedIds.length > 0) {
+    console.warn('[auction] public auction products could not be loaded', {
+      count: unresolvedIds.length,
+      ids: unresolvedIds,
+    });
+  }
+
+  // Keep the caller's order so cursor offsets stay stable across pages.
+  return ids.flatMap((id) => {
+    const product = productsById.get(id);
+    return product ? [product] : [];
+  });
 }
 
 async function findPublicStoreProductPage(

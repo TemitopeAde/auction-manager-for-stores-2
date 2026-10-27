@@ -354,3 +354,13 @@ export async function patchAuctionRecord(
 export async function deleteAuctionRecord(auctionId: string): Promise<void> {
   await items.remove(AUCTIONS_COLLECTION_ID, auctionId);
 }
+
+export async function deleteAuctionRecords(auctionIds: string[]): Promise<void> {
+  const validIds = auctionIds.filter((id) => typeof id === 'string' && id.trim().length > 0);
+  if (validIds.length === 0) return;
+
+  for (let i = 0; i < validIds.length; i += 1000) {
+    const chunk = validIds.slice(i, i + 1000);
+    await items.bulkRemove(AUCTIONS_COLLECTION_ID, chunk);
+  }
+}

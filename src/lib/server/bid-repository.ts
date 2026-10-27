@@ -98,6 +98,22 @@ export async function deleteBidsByAuctionId(auctionId: string): Promise<void> {
   );
 }
 
+export async function deleteBidsByAuctionIds(auctionIds: string[]): Promise<void> {
+  const ids = auctionIds.filter(Boolean);
+  if (ids.length === 0) return;
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const bids = await queryAll<BidCollectionItem>(() =>
+      items.query(BIDS_COLLECTION_ID).hasSome('auctionId', chunk),
+    );
+    const bidIds = bids.map((b) => b._id).filter(Boolean);
+    for (let j = 0; j < bidIds.length; j += 1000) {
+      await items.bulkRemove(BIDS_COLLECTION_ID, bidIds.slice(j, j + 1000));
+    }
+  }
+}
+
 export async function insertBidRecord(auctionId: string, input: BidInput): Promise<BidRecord> {
   const bid: Omit<BidCollectionItem, '_id'> = {
     auctionId,

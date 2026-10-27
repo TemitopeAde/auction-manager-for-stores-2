@@ -115,6 +115,10 @@ export const NumberInput: FC<NumberInputProps> = ({
       type="number"
       value={value ?? ''}
       onChange={handleChange}
+      onWheel={(e) => {
+        e.currentTarget.blur();
+        rest.onWheel?.(e);
+      }}
       min={min}
       max={max}
       step={step}

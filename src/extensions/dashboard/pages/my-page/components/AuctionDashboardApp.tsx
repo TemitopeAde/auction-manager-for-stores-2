@@ -60,6 +60,7 @@ import type {
   AuctionStatus,
   AuctionView,
   BidSummary,
+  DashboardAuctionRow,
   DashboardPayload,
   PlanTier,
 } from '../../../../../lib/auction/types';
@@ -79,6 +80,7 @@ import {
   downloadLeadsExport,
   createWhatsappHref,
   deleteAuction,
+  deleteAuctions,
   deleteBid,
   getSettings,
   loadDashboard,
@@ -233,22 +235,14 @@ function getReserveProgress(
 }
 
 type DashboardTab =
-  | 'guide'
+  | 'overview'
   | 'monitor'
-  | 'setup'
   | 'auctions'
   | 'products'
   | 'leads'
-  | 'sitePlugins'
   | 'settings';
 type WinnerFilter = 'all' | 'winner' | 'others';
 type ProductAuctionFilter = 'all' | 'linked' | 'unlinked';
-
-type DashboardContextState = {
-  productId: string | null;
-  productName: string | null;
-  returnToStores: boolean;
-};
 
 const FILTER_CONTROL_STYLE: React.CSSProperties = {
   minWidth: 160,
@@ -380,13 +374,11 @@ const tabs: Array<{
   title: string;
   icon: React.ReactNode;
 }> = [
-  { id: 'guide', title: 'Guide', icon: <Icons.InfoCircle /> },
+  { id: 'overview', title: 'Overview', icon: <Icons.InfoCircle /> },
   { id: 'monitor', title: 'Monitor', icon: <Icons.LineChart /> },
-  { id: 'setup', title: 'Setup', icon: <Icons.Add /> },
   { id: 'auctions', title: 'Auctions', icon: <Icons.Collections /> },
   { id: 'products', title: 'Products', icon: <Icons.Cart /> },
   { id: 'leads', title: 'Leads', icon: <Icons.Users /> },
-  { id: 'sitePlugins', title: 'Site Plugins', icon: <Icons.Collections /> },
   { id: 'settings', title: 'Settings', icon: <Icons.Settings /> },
 ];
 
@@ -420,13 +412,11 @@ const PlanLock: FC<{
 };
 
 const TAB_SUBTITLES: Record<DashboardTab, string> = {
-  guide: 'Learn how Auction Manager for Stores works and launch your first auction with confidence.',
+  overview: 'Your auction snapshot and the steps to get your store auction-ready.',
   monitor: 'Track live bidding momentum, reserve progress, and quick actions.',
-  setup: 'Create auctions from existing Wix Store products.',
   auctions: 'Search, filter, and manage every auction in your catalog.',
   products: 'Link store products to auctions and keep inventory in sync.',
   leads: 'Review bidders, winners, and follow-up opportunities.',
-  sitePlugins: 'Check where the auction plugins are placed on this site.',
   settings: 'Configure defaults, messaging, and auction behavior.',
 };
 
@@ -453,64 +443,6 @@ const EMPTY_PAYLOAD: DashboardPayload = {
   leads: [],
   currency: '',
 };
-
-const GUIDE_QUICK_START_STEPS = [
-  {
-    title: 'Connect a product to an auction',
-    body:
-      'Open Setup, pick one Wix Stores product, and turn it into a timed auction with a start price, reserve, and schedule.',
-    actionLabel: 'Open Setup',
-    actionTab: 'setup' as DashboardTab,
-  },
-  {
-    title: 'Publish and monitor bidding',
-    body:
-      'Use Monitor to track current bid, reserve progress, countdown, and fast actions like pause, resume, and view bids.',
-    actionLabel: 'Open Monitor',
-    actionTab: 'monitor' as DashboardTab,
-  },
-  {
-    title: 'Review bidders and choose a winner',
-    body:
-      'Open Auctions or Leads to inspect bid history, contact bidders, and select the winning bid when the auction closes.',
-    actionLabel: 'View Auctions',
-    actionTab: 'auctions' as DashboardTab,
-  },
-];
-
-const GUIDE_PRACTICES = [
-  'Use one product per auction to avoid catalog and fulfillment confusion.',
-  'Set a realistic minimum increment so bidding stays active without jumping too aggressively.',
-  'Enable anti-sniping when you want last-second bids to extend the timer fairly.',
-  'Keep owner notification emails updated in Settings so important bid events never get missed.',
-];
-
-const GUIDE_WORKFLOWS = [
-  {
-    title: 'Before you go live',
-    items: [
-      'Confirm the product image, title, and auction schedule are correct.',
-      'Check reserve price and starting bid against your sales goal.',
-      'Review bidder communication settings in the Settings tab.',
-    ],
-  },
-  {
-    title: 'While the auction is running',
-    items: [
-      'Watch the Monitor tab for active auctions and ending-soon urgency.',
-      'Open View Bids to inspect bidder activity and shortlist strong leads.',
-      'Pause an auction only when operationally necessary, then resume when ready.',
-    ],
-  },
-  {
-    title: 'After the auction ends',
-    items: [
-      'Select a winner from the bids modal to generate checkout for the winning bidder.',
-      'Use Leads to follow up with other interested bidders for future inventory.',
-      'Export auction data when you need reporting or offline analysis.',
-    ],
-  },
-];
 
 interface AuctionDashboardAppProps {
   onTitleChange?: (title: string) => void;
@@ -547,20 +479,16 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   onStateChange,
 }) => {
   const [payload, setPayload] = useState<DashboardPayload>(EMPTY_PAYLOAD);
-  const [tab, setTab] = useState<DashboardTab>('monitor');
+  const [tab, setTab] = useState<DashboardTab>('overview');
   const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(null);
   const [form, setForm] = useState<AuctionInput>(EMPTY_AUCTION_INPUT);
   const [productAvailabilityNow, setProductAvailabilityNow] = useState(Date.now());
-  const [dashboardContext, setDashboardContext] = useState<DashboardContextState>({
-    productId: null,
-    productName: null,
-    returnToStores: false,
-  });
   const [settingsForm, setSettingsForm] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 5;
   const auctionsPerPage = 50;
+  const productsPerPage = 50;
   const [auctionTotal, setAuctionTotal] = useState(0);
   const [leadPage, setLeadPage] = useState(1);
   const [leadTotal, setLeadTotal] = useState(0);
@@ -598,7 +526,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const [auctionLifecycleFilter, setAuctionLifecycleFilter] = useState<
     'all' | AuctionLifecycle
   >('all');
-  const [auctionResults, setAuctionResults] = useState<AuctionView[]>([]);
+  const [auctionResults, setAuctionResults] = useState<DashboardAuctionRow[]>([]);
   const [isAuctionsTableLoading, setIsAuctionsTableLoading] = useState<boolean>(false);
   const [leadSearch, setLeadSearch] = useState<string>('');
   const [leadAuctionFilter, setLeadAuctionFilter] = useState<string>('all');
@@ -616,11 +544,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const [productResults, setProductResults] = useState<DashboardProductRow[]>([]);
   const [productTotal, setProductTotal] = useState<number>(0);
   const [isProductsTableLoading, setIsProductsTableLoading] = useState<boolean>(false);
-  const [unlinkedProductPage, setUnlinkedProductPage] = useState<number>(1);
-  const [unlinkedProductResults, setUnlinkedProductResults] = useState<DashboardProductRow[]>([]);
-  const [unlinkedProductTotal, setUnlinkedProductTotal] = useState<number>(0);
-  const [isUnlinkedProductsLoading, setIsUnlinkedProductsLoading] = useState<boolean>(false);
-  const unlinkedProductRequestId = useRef(0);
   const [bidsSearch, setBidsSearch] = useState<string>('');
   const [bidsWinnerFilter, setBidsWinnerFilter] = useState<WinnerFilter>('all');
   const [bidResults, setBidResults] = useState<BidSummary[]>([]);
@@ -634,6 +557,10 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const [resendingWinnerAuctionId, setResendingWinnerAuctionId] = useState<string | null>(null);
   const [auctionToDelete, setAuctionToDelete] = useState<AuctionView | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [selectedAuctionIds, setSelectedAuctionIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState<boolean>(false);
+  const [isSelectingAllMatching, setIsSelectingAllMatching] = useState<boolean>(false);
   const [bidToDelete, setBidToDelete] = useState<BidDeletionState>(null);
   const [isDeletingBid, setIsDeletingBid] = useState<boolean>(false);
   const [actionToConfirm, setActionToConfirm] = useState<{
@@ -659,7 +586,10 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   const isProductSearching = (productSearch !== debouncedProductSearch) || isProductsTableLoading;
   const isBidsSearching = (bidsSearch !== debouncedBidsSearch) || isBidsTableLoading;
   const isMonitorSearching = (monitorSearch !== debouncedMonitorSearch) || isMonitorLoading;
-  const isProductPickerSearching = (productPickerSearch !== debouncedProductPickerSearch) || isProductPickerLoading;
+  const isProductPickerSearching =
+    productPickerSearch !== debouncedProductPickerSearch ||
+    (isProductPickerLoading && productPickerPage === 1);
+  const isProductPickerLoadingMore = isProductPickerLoading && productPickerPage > 1;
 
   const selectedAuction = useMemo(
     () => payload?.auctions.find((auction) => auction.id === selectedAuctionId) ?? null,
@@ -801,6 +731,9 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   );
 
   const filteredAuctions = auctionResults;
+  const areAllVisibleAuctionsSelected =
+    filteredAuctions.length > 0 &&
+    filteredAuctions.every((a) => selectedAuctionIds.includes(a.id));
 
   const filteredProductAuctionRows = productResults;
 
@@ -872,12 +805,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
     name: string;
   }) => {
     setSelectedAuctionId(null);
-    setTab('setup');
-    setDashboardContext((current) => ({
-      ...current,
-      productId: product.id,
-      productName: product.name,
-    }));
     setForm({
       ...EMPTY_AUCTION_INPUT,
       antiSnipingEnabled: planAllows(payload.settings.planTier, 'antiSniping'),
@@ -899,6 +826,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         lifecycle: auctionLifecycleFilter,
         page: currentPage,
         pageSize: auctionsPerPage,
+        includeLinkedProducts: true,
       });
       if (requestId !== auctionRequestId.current) return;
       setAuctionTotal(results.total);
@@ -957,12 +885,12 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         search: debouncedProductSearch,
         auctionLink: productAuctionFilter,
         page: productPage,
-        pageSize: itemsPerPage,
+        pageSize: productsPerPage,
       });
       if (requestId !== productRequestId.current) return;
       setProductResults(results.rows);
       setProductTotal(results.total);
-      const lastPage = Math.max(1, Math.ceil(results.total / itemsPerPage));
+      const lastPage = Math.max(1, Math.ceil(results.total / productsPerPage));
       if (productPage > lastPage) setProductPage(lastPage);
     } catch (error) {
       if (requestId === productRequestId.current) {
@@ -973,32 +901,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
     } finally {
       if (requestId === productRequestId.current) setIsProductsTableLoading(false);
     }
-  }, [debouncedProductSearch, itemsPerPage, productAuctionFilter, productPage]);
-
-  const refreshUnlinkedProducts = useCallback(async (): Promise<void> => {
-    const requestId = ++unlinkedProductRequestId.current;
-    setIsUnlinkedProductsLoading(true);
-
-    try {
-      const results: DashboardProductResult = await searchDashboardProducts({
-        auctionLink: 'unlinked',
-        page: unlinkedProductPage,
-        pageSize: 20,
-      });
-      if (requestId !== unlinkedProductRequestId.current) return;
-      setUnlinkedProductResults(results.rows);
-      setUnlinkedProductTotal(results.total);
-      const lastPage = Math.max(1, Math.ceil(results.total / 20));
-      if (unlinkedProductPage > lastPage) setUnlinkedProductPage(lastPage);
-    } catch (error) {
-      if (requestId === unlinkedProductRequestId.current) {
-        setUnlinkedProductResults([]);
-        setUnlinkedProductTotal(0);
-      }
-    } finally {
-      if (requestId === unlinkedProductRequestId.current) setIsUnlinkedProductsLoading(false);
-    }
-  }, [unlinkedProductPage]);
+  }, [debouncedProductSearch, productsPerPage, productAuctionFilter, productPage]);
 
   const refreshBidResults = useCallback(async (): Promise<void> => {
     const requestId = ++bidRequestId.current;
@@ -1078,19 +981,24 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         pageSize: 20,
       });
       if (requestId !== productPickerRequestId.current) return;
-      setProductPickerOptions(results.products);
+      // Later pages append to the list for infinite scrolling.
+      setProductPickerOptions((current) => {
+        if (productPickerPage === 1) return results.products;
+        const seen = new Set(current.map((product) => product._id));
+        return [...current, ...results.products.filter((product) => !seen.has(product._id))];
+      });
       setProductPickerTotal(results.total);
       setStoreProducts((current) => {
         const byId = new Map(current.map((product) => [product._id || product.id, product]));
         results.products.forEach((product) => byId.set(product._id || product.id, product));
         return [...byId.values()];
       });
-      const lastPage = Math.max(1, Math.ceil(results.total / 20));
-      if (productPickerPage > lastPage) setProductPickerPage(lastPage);
     } catch (error) {
       if (requestId === productPickerRequestId.current) {
-        setProductPickerOptions([]);
-        setProductPickerTotal(0);
+        if (productPickerPage === 1) {
+          setProductPickerOptions([]);
+          setProductPickerTotal(0);
+        }
         dashboard.showToast({ message: 'Unable to search store products.', type: 'error' });
       }
     } finally {
@@ -1107,12 +1015,8 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   }, [payload.generatedAt, refreshLeadResults, tab]);
 
   useEffect(() => {
-    if (tab === 'products' || tab === 'setup') void refreshProductResults();
+    if (tab === 'products') void refreshProductResults();
   }, [payload.generatedAt, refreshProductResults, tab]);
-
-  useEffect(() => {
-    if (tab === 'setup') void refreshUnlinkedProducts();
-  }, [payload.generatedAt, refreshUnlinkedProducts, tab]);
 
   useEffect(() => {
     if (viewingBidsAuctionId) void refreshBidResults();
@@ -1125,6 +1029,13 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   useEffect(() => {
     if (isFormOpen) void refreshProductPicker();
   }, [isFormOpen, refreshProductPicker]);
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      setProductPickerSearch('');
+      setProductPickerPage(1);
+    }
+  }, [isFormOpen]);
 
   useEffect(() => {
     onTitleChange?.(payload.settings.businessName || 'Auction Manager for Stores');
@@ -1193,7 +1104,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
       setPayload(nextPayload);
       if (!silent) {
         setSettingsForm(nextPayload.settings);
-        void refreshUnlinkedProducts();
       }
     } catch (error) {
       // Background refreshes keep the last good data and retry on the next tick.
@@ -1208,7 +1118,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, [refreshUnlinkedProducts]);
+  }, []);
 
   const refreshPluginPlacementStatus = useCallback(async (): Promise<void> => {
     setIsPluginStatusLoading(true);
@@ -1226,7 +1136,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   }, []);
 
   useEffect(() => {
-    if (tab === 'sitePlugins') {
+    if (tab === 'overview') {
       void refreshPluginPlacementStatus();
     }
   }, [refreshPluginPlacementStatus, tab]);
@@ -1380,8 +1290,8 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         message: `Auction "${auctionToDelete.title}" deleted successfully.`,
         type: 'success',
       });
+      setSelectedAuctionIds((prev) => prev.filter((id) => id !== auctionToDelete.id));
       void refreshDashboard();
-      void refreshUnlinkedProducts();
       void refreshProductResults();
       void refreshAuctionResults();
       void refreshMonitorResults();
@@ -1401,7 +1311,87 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
     refreshDashboard,
     refreshMonitorResults,
     refreshProductResults,
-    refreshUnlinkedProducts,
+  ]);
+
+  const handleConfirmBulkDelete = useCallback(async () => {
+    if (selectedAuctionIds.length === 0) {
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    const count = selectedAuctionIds.length;
+
+    try {
+      await deleteAuctions(selectedAuctionIds);
+      dashboard.showToast({
+        message: `Successfully deleted ${count} auction${count === 1 ? '' : 's'}.`,
+        type: 'success',
+      });
+      setSelectedAuctionIds([]);
+      setIsBulkDeleteModalOpen(false);
+      void refreshDashboard();
+      void refreshProductResults();
+      void refreshAuctionResults();
+      void refreshMonitorResults();
+    } catch (e) {
+      console.error('[Dashboard] Error bulk deleting auctions:', e);
+      dashboard.showToast({
+        message: 'Failed to delete auctions. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }, [
+    selectedAuctionIds,
+    refreshAuctionResults,
+    refreshDashboard,
+    refreshMonitorResults,
+    refreshProductResults,
+  ]);
+
+  const toggleAuctionSelection = useCallback((auctionId: string) => {
+    setSelectedAuctionIds((current) =>
+      current.includes(auctionId)
+        ? current.filter((id) => id !== auctionId)
+        : [...current, auctionId],
+    );
+  }, []);
+
+  const toggleSelectAllVisibleAuctions = useCallback(() => {
+    setSelectedAuctionIds((current) => {
+      const visibleAuctionIds = filteredAuctions.map((a) => a.id);
+
+      if (visibleAuctionIds.every((id) => current.includes(id))) {
+        return current.filter((id) => !visibleAuctionIds.includes(id));
+      }
+
+      return Array.from(new Set([...current, ...visibleAuctionIds]));
+    });
+  }, [filteredAuctions]);
+
+  const handleSelectAllMatchingAuctions = useCallback(async () => {
+    setIsSelectingAllMatching(true);
+    try {
+      const res = await searchDashboardAuctions({
+        search: debouncedAuctionSearch || undefined,
+        status: auctionStatusFilter !== 'all' ? auctionStatusFilter : undefined,
+        lifecycle: auctionLifecycleFilter !== 'all' ? auctionLifecycleFilter : undefined,
+        page: 1,
+        pageSize: Math.max(auctionTotal, 1000),
+      });
+      const allIds = res.rows.map((a) => a.id);
+      setSelectedAuctionIds(allIds);
+    } catch (e) {
+      console.error('[Dashboard] Failed to select all matching auctions:', e);
+    } finally {
+      setIsSelectingAllMatching(false);
+    }
+  }, [
+    auctionLifecycleFilter,
+    auctionStatusFilter,
+    auctionTotal,
+    debouncedAuctionSearch,
   ]);
 
   const handleConfirmDeleteBid = useCallback(async () => {
@@ -1496,7 +1486,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
 
   const createAuctionAction = useCallback(() => {
     setSelectedAuctionId(null);
-    setTab('setup');
     setForm({
       ...EMPTY_AUCTION_INPUT,
       antiSnipingEnabled: planAllows(payload.settings.planTier, 'antiSniping'),
@@ -1609,14 +1598,8 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         setTab(contextFromQuery.tab);
       }
 
-      setDashboardContext({
-        productId: contextFromQuery.productId ?? null,
-        productName: contextFromQuery.productName ?? null,
-        returnToStores: Boolean(contextFromQuery.returnToStores),
-      });
-
       if (contextFromQuery.productId) {
-        setTab('setup');
+        setIsFormOpen(true);
         setForm((current) => ({
           ...current,
           productIds: [contextFromQuery.productId as string],
@@ -1646,13 +1629,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         return;
       }
 
-      setDashboardContext({
-        productId,
-        productName,
-        returnToStores:
-          typeof state?.returnToStores === 'boolean' ? state.returnToStores : false,
-      });
-      setTab('setup');
+      setIsFormOpen(true);
       setForm((current) => ({
         ...current,
         productIds: [productId],
@@ -1801,7 +1778,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         type: 'success',
       });
       setIsFormOpen(false);
-      void refreshUnlinkedProducts();
       void refreshProductResults();
       void refreshAuctionResults();
       void refreshMonitorResults();
@@ -1835,7 +1811,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         message: 'Auction updated.',
         type: 'success',
       });
-      void refreshUnlinkedProducts();
       void refreshProductResults();
       void refreshAuctionResults();
       void refreshMonitorResults();
@@ -2131,6 +2106,51 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
   }
 
   const activeTab = tabs.find((item) => item.id === tab) ?? tabs[0];
+
+  const unplacedPluginRows = sitePluginRows.filter((row) => row.placedInSlot === false);
+  const setupChecklist: Array<{
+    id: string;
+    title: string;
+    body: string;
+    done: boolean;
+    action?: { label: string; onClick: () => void };
+  }> = [
+    {
+      id: 'create',
+      title: 'Create your first auction',
+      body: 'Pick a Wix Stores product and set a starting bid, reserve, and schedule.',
+      done: payload.summary.totalAuctions > 0,
+      action: { label: 'Create auction', onClick: createAuctionAction },
+    },
+    {
+      id: 'widget',
+      title: 'Add the auction widget to your site',
+      body: 'Place the bidding plugin on your product page so shoppers can bid.',
+      done: sitePluginRows.some((row) => row.placedInSlot === true),
+    },
+    {
+      id: 'emails',
+      title: 'Turn on bid emails',
+      body: 'Let bidders get confirmations and outbid alerts, and send winners a payment link.',
+      done: payload.settings.emailBiddingEnabled,
+      action: { label: 'Open Settings', onClick: () => setTab('settings') },
+    },
+    {
+      id: 'live',
+      title: 'Go live',
+      body: 'Publish an auction so it opens for bidding on your site.',
+      done: payload.summary.activeAuctions > 0,
+      action: { label: 'View auctions', onClick: () => setTab('auctions') },
+    },
+    {
+      id: 'bid',
+      title: 'Receive your first bid',
+      body: 'Share the product page and watch bids arrive in Monitor.',
+      done: payload.summary.totalBids > 0,
+      action: { label: 'Open Monitor', onClick: () => setTab('monitor') },
+    },
+  ];
+  const checklistDoneCount = setupChecklist.filter((item) => item.done).length;
   const siteName = payload.siteName?.trim() || payload.settings.businessName || 'Smart Auction';
 
   return (
@@ -2273,23 +2293,20 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         </header>
 
         <div className={styles.content}>
-      {tab === 'guide' ? (
+      {tab === 'overview' ? (
         <Layout gap="24px">
           <Cell span={8}>
             <Card>
               <Card.Header
                 title="Welcome to Auction Manager for Stores"
-                subtitle="This guide walks your team through the full auction lifecycle, from creating the first listing to closing the sale."
+                subtitle="Run timed auctions on your Wix Stores products."
               />
               <Card.Content>
                 <div className={styles.guideHero}>
                   <div className={styles.guideHeroCopy}>
-                    <Heading size="medium">Run product auctions without guessing the next step</Heading>
                     <Text secondary>
-                      Auction Manager for Stores connects your Wix Stores catalog to timed auctions,
-                      bidder tracking, winner selection, and owner notifications. Use this page
-                      as your operating playbook whenever a new teammate joins or you need a
-                      fast reset.
+                      Turn store products into timed auctions, track bidders, and pick winners.
+                      Work through the checklist below to get your store auction-ready.
                     </Text>
                   </div>
                   <div className={styles.guideSummaryGrid}>
@@ -2358,100 +2375,75 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
           <Cell span={12}>
             <Card>
               <Card.Header
-                title="Quick Start"
-                subtitle="Follow these steps in order when launching a new auction."
+                title="Setup Checklist"
+                subtitle={
+                  checklistDoneCount === setupChecklist.length
+                    ? "You're all set. Your store is ready to run auctions."
+                    : `${checklistDoneCount} of ${setupChecklist.length} steps complete`
+                }
               />
               <Card.Content>
-                <div className={styles.guideStepsGrid}>
-                  {GUIDE_QUICK_START_STEPS.map((step, index) => (
-                    <div key={step.title} className={styles.guideStepCard}>
-                      <div className={styles.guideStepNumber}>{index + 1}</div>
-                      <div className={styles.guideStepContent}>
-                        <Text weight="bold">{step.title}</Text>
-                        <Text secondary>{step.body}</Text>
-                        <div>
-                          <Button
-                            size="small"
-                            priority="secondary"
-                            onClick={() => setTab(step.actionTab)}
-                          >
-                            {step.actionLabel}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className={styles.checklistTrack} aria-hidden="true">
+                  <div
+                    className={styles.checklistFill}
+                    style={{ width: `${(checklistDoneCount / setupChecklist.length) * 100}%` }}
+                  />
                 </div>
-              </Card.Content>
-            </Card>
-          </Cell>
-
-          <Cell span={7}>
-            <Card>
-              <Card.Header
-                title="Operational Best Practices"
-                subtitle="Use these defaults to keep auctions clean and easier to manage."
-              />
-              <Card.Content>
-                <div className={styles.guideChecklist}>
-                  {GUIDE_PRACTICES.map((item) => (
-                    <div key={item} className={styles.guideChecklistItem}>
-                      <span className={styles.guideChecklistBullet} />
-                      <Text secondary>{item}</Text>
-                    </div>
-                  ))}
-                </div>
-              </Card.Content>
-            </Card>
-          </Cell>
-
-          <Cell span={5}>
-            <Card>
-              <Card.Header
-                title="Where Things Happen"
-                subtitle="Use the right dashboard area for the right task."
-              />
-              <Card.Content>
-                <div className={styles.guideSectionList}>
-                  <div className={styles.guideSectionCard}>
-                    <Text weight="bold">Setup</Text>
-                    <Text secondary>Create auctions from store products and prepare them for launch.</Text>
-                  </div>
-                  <div className={styles.guideSectionCard}>
-                    <Text weight="bold">Monitor</Text>
-                    <Text secondary>Track live bidding, reserve progress, and active countdowns.</Text>
-                  </div>
-                  <div className={styles.guideSectionCard}>
-                    <Text weight="bold">Auctions, Leads, and Settings</Text>
-                    <Text secondary>Manage listings, follow up with bidders, and control your auction rules.</Text>
-                  </div>
-                </div>
-              </Card.Content>
-            </Card>
-          </Cell>
-
-          <Cell span={12}>
-            <Card>
-              <Card.Header
-                title="Recommended Workflow"
-                subtitle="A practical operating rhythm for your team."
-              />
-              <Card.Content>
-                <div className={styles.guideWorkflowGrid}>
-                  {GUIDE_WORKFLOWS.map((section) => (
-                    <div key={section.title} className={styles.guideWorkflowCard}>
-                      <Text weight="bold">{section.title}</Text>
-                      <div className={styles.guideChecklist}>
-                        {section.items.map((item) => (
-                          <div key={item} className={styles.guideChecklistItem}>
-                            <span className={styles.guideChecklistBullet} />
-                            <Text secondary>{item}</Text>
+                <ol className={styles.checklist}>
+                  {setupChecklist.map((item) => (
+                    <li
+                      key={item.id}
+                      className={`${styles.checklistItem}${item.done ? ` ${styles.checklistItemDone}` : ''}`}
+                    >
+                      <span className={styles.checklistMark} aria-hidden="true">
+                        {item.done ? <Icons.Check /> : null}
+                      </span>
+                      <div className={styles.checklistBody}>
+                        <Text weight="bold">
+                          {item.title}
+                          <span className={styles.visuallyHidden}>
+                            {item.done ? ' (done)' : ' (to do)'}
+                          </span>
+                        </Text>
+                        <Text size="small" secondary>{item.body}</Text>
+                        {item.id === 'widget' && pluginPlacementResult?.error ? (
+                          <Text size="small" secondary>
+                            Unable to load plugin placement status: {pluginPlacementResult.error}
+                          </Text>
+                        ) : null}
+                        {item.id === 'widget' && !item.done && unplacedPluginRows.length > 0 ? (
+                          <div className={styles.checklistActions}>
+                            {unplacedPluginRows.map((row) => (
+                              <Button
+                                key={row.pluginId}
+                                size="small"
+                                priority="secondary"
+                                disabled={placingPluginId !== null || isPluginStatusLoading}
+                                onClick={() => void handlePlaceSitePlugin(row)}
+                              >
+                                {placingPluginId === row.pluginId ? 'Placing…' : `Place ${row.name}`}
+                              </Button>
+                            ))}
                           </div>
-                        ))}
+                        ) : null}
                       </div>
-                    </div>
+                      {!item.done && item.action ? (
+                        <Button size="small" onClick={item.action.onClick}>
+                          {item.action.label}
+                        </Button>
+                      ) : null}
+                      {item.id === 'widget' ? (
+                        <TextButton
+                          size="small"
+                          disabled={isPluginStatusLoading || placingPluginId !== null}
+                          onClick={() => void refreshPluginPlacementStatus()}
+                        >
+                          {isPluginStatusLoading ? 'Checking…' : 'Recheck'}
+                        </TextButton>
+                      ) : null}
+                    </li>
                   ))}
-                </div>
+                </ol>
               </Card.Content>
             </Card>
           </Cell>
@@ -3029,157 +3021,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
         </Layout>
       ) : null}
 
-      {tab === 'setup' ? (
-        <Layout gap="24px">
-          <Cell span={12}>
-            <Card>
-              <Card.Header
-                title="Unified Setup Hub"
-                subtitle="Start an auction from an existing Wix Store product."
-              />
-              <Card.Content>
-                <div style={{ display: 'grid', gap: 18 }}>
-                  <Box gap="12px" style={{ flexWrap: 'wrap' }}>
-                    <Button prefixIcon={<Icons.Add />} onClick={createAuctionAction}>
-                      Create Auction
-                    </Button>
-                    <Button priority="secondary" onClick={() => setTab('products')}>
-                      Browse Product Catalog
-                    </Button>
-                  </Box>
-
-                  {dashboardContext.productId ? (
-                    <div
-                      style={{
-                        borderRadius: 16,
-                        padding: 16,
-                        background: '#faf9f6',
-                        border: '1px solid #dbe7f3',
-                        display: 'grid',
-                        gap: 8,
-                      }}
-                    >
-                      <Text weight="bold">Context From Wix Stores</Text>
-                      <Text secondary>
-                        Ready to create an auction for{' '}
-                        <strong>{dashboardContext.productName || dashboardContext.productId}</strong>.
-                      </Text>
-                      <Box gap="12px" style={{ flexWrap: 'wrap' }}>
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            handleCreateAuctionForProduct({
-                              id: dashboardContext.productId as string,
-                              name:
-                                dashboardContext.productName ||
-                                dashboardContext.productId ||
-                                'Selected product',
-                            })
-                          }
-                        >
-                          Create Auction For This Product
-                        </Button>
-                        {dashboardContext.returnToStores ? (
-                          <Text size="small" secondary>
-                            You can return to Wix Stores after saving.
-                          </Text>
-                        ) : null}
-                      </Box>
-                    </div>
-                  ) : null}
-
-                  <Card>
-                    <Card.Header
-                      title="Existing Products Ready For Auction"
-                      subtitle="Quick-start from unlinked products already in Wix Stores."
-                      suffix={
-                        unlinkedProductTotal > 20 ? (
-                          <Box gap="SP2" align="center">
-                            <Pagination
-                              currentPage={unlinkedProductPage}
-                              totalPages={Math.ceil(unlinkedProductTotal / 20) || 1}
-                              onChange={(e) => setUnlinkedProductPage(e.page)}
-                            />
-                          </Box>
-                        ) : undefined
-                      }
-                    />
-                    <Card.Content>
-                      {isUnlinkedProductsLoading ? (
-                        <div style={EMPTY_STATE_STYLE}>
-                          <Loader size="tiny" />
-                        </div>
-                      ) : unlinkedProductResults.length > 0 ? (
-                        <div style={{ display: 'grid', gap: 16 }}>
-                          <Table
-                            data={unlinkedProductResults}
-                            columns={[
-                              {
-                                title: 'Product',
-                                render: (row: DashboardProductRow) => (
-                                  <Box direction="vertical" gap="2px">
-                                    <Text weight="bold">{row.name}</Text>
-                                  </Box>
-                                ),
-                              },
-                              {
-                                title: 'SKU',
-                                width: '200px',
-                                render: (row: DashboardProductRow) => (
-                                  <Text size="small" secondary>
-                                    {row.sku || '-'}
-                                  </Text>
-                                ),
-                              },
-                              {
-                                title: 'Action',
-                                width: '160px',
-                                render: (row: DashboardProductRow) => (
-                                  <Button
-                                    size="small"
-                                    priority="secondary"
-                                    prefixIcon={<Icons.Add />}
-                                    onClick={() =>
-                                      handleCreateAuctionForProduct({
-                                        id: row.id,
-                                        name: row.name,
-                                      })
-                                    }
-                                  >
-                                    Start Auction
-                                  </Button>
-                                ),
-                              },
-                            ]}
-                          />
-                          {unlinkedProductTotal > 20 ? (
-                            <Box align="center">
-                              <Pagination
-                                currentPage={unlinkedProductPage}
-                                totalPages={Math.ceil(unlinkedProductTotal / 20) || 1}
-                                onChange={(e) => setUnlinkedProductPage(e.page)}
-                              />
-                            </Box>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div style={EMPTY_STATE_STYLE}>
-                          <Text secondary>
-                            No unlinked products are available right now. All store products
-                            are currently linked to an auction, or no products were found in
-                            Wix Stores.
-                          </Text>
-                        </div>
-                      )}
-                    </Card.Content>
-                  </Card>
-                </div>
-              </Card.Content>
-            </Card>
-          </Cell>
-        </Layout>
-      ) : null}
-
       {tab === 'auctions' ? (
         <Layout gap="24px">
           <Cell span={12}>
@@ -3271,13 +3112,111 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                       <Loader size="tiny" />
                     </div>
                   ) : filteredAuctions.length > 0 ? (
-                    <Table
-                      data={filteredAuctions}
-                      columns={[
-                        {
-                          title: 'Title',
-                          render: (row) => <Text weight="bold">{row.title}</Text>,
-                        },
+                    <>
+                      <Box
+                        align="space-between"
+                        verticalAlign="middle"
+                        gap="12px"
+                        style={{ width: '100%', flexWrap: 'wrap', marginBottom: '16px' }}
+                      >
+                        <Box verticalAlign="middle" gap="16px">
+                          <Checkbox
+                            checked={areAllVisibleAuctionsSelected}
+                            onChange={() => toggleSelectAllVisibleAuctions()}
+                          >
+                            Select all visible auctions
+                          </Checkbox>
+                          {selectedAuctionIds.length > 0 && (
+                            <Text size="small" secondary>
+                              {selectedAuctionIds.length} selected
+                            </Text>
+                          )}
+                          {areAllVisibleAuctionsSelected &&
+                            auctionTotal > filteredAuctions.length &&
+                            selectedAuctionIds.length < auctionTotal && (
+                              <Text size="small" secondary>
+                                All {filteredAuctions.length} auctions on this page are selected.{' '}
+                                <TextButton
+                                  size="small"
+                                  disabled={isSelectingAllMatching}
+                                  onClick={() => void handleSelectAllMatchingAuctions()}
+                                >
+                                  {isSelectingAllMatching
+                                    ? 'Selecting...'
+                                    : `Select all ${auctionTotal} auctions`}
+                                </TextButton>
+                              </Text>
+                            )}
+                        </Box>
+                        {selectedAuctionIds.length > 0 && (
+                          <Box verticalAlign="middle" gap="8px">
+                            <Button
+                              size="small"
+                              skin="standard"
+                              priority="secondary"
+                              onClick={() => setSelectedAuctionIds([])}
+                            >
+                              Clear Selection
+                            </Button>
+                            <Button
+                              size="small"
+                              skin="destructive"
+                              prefixIcon={<Icons.Delete />}
+                              onClick={() => setIsBulkDeleteModalOpen(true)}
+                            >
+                              Delete Selected ({selectedAuctionIds.length})
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                      <Table
+                        data={filteredAuctions}
+                        columns={[
+                          {
+                            title: (
+                              <Checkbox
+                                checked={areAllVisibleAuctionsSelected}
+                                onChange={() => toggleSelectAllVisibleAuctions()}
+                              />
+                            ),
+                            width: '40px',
+                            render: (row) => (
+                              <Checkbox
+                                checked={selectedAuctionIds.includes(row.id)}
+                                onChange={() => toggleAuctionSelection(row.id)}
+                              />
+                            ),
+                          },
+                          {
+                            title: 'Title',
+                            render: (row) => <Text weight="bold">{row.title}</Text>,
+                          },
+                          {
+                            title: 'Product',
+                            render: (row) =>
+                              row.linkedProduct ? (
+                                <Box gap="8px" verticalAlign="middle">
+                                  {row.linkedProduct.imageUrl ? (
+                                    <img
+                                      src={row.linkedProduct.imageUrl}
+                                      alt=""
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        objectFit: 'cover',
+                                        borderRadius: 6,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                  ) : null}
+                                  <Text size="small">{row.linkedProduct.name}</Text>
+                                </Box>
+                              ) : (
+                                <Text size="small" secondary>
+                                  {row.productIds.length > 0 ? 'Product unavailable' : 'No product'}
+                                </Text>
+                              ),
+                          },
                         {
                           title: 'Status',
                           render: (row) => <AuctionStatusBadge status={row.status} />,
@@ -3402,6 +3341,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                     >
                       <Table.Content />
                     </Table>
+                    </>
                   ) : (
                     <div
                       style={{
@@ -3492,7 +3432,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
               <Box gap="SP2" align="center">
                 <Pagination
                   currentPage={productPage}
-                  totalPages={Math.ceil(productTotal / itemsPerPage) || 1}
+                  totalPages={Math.ceil(productTotal / productsPerPage) || 1}
                   onChange={(e) => setProductPage(e.page)}
                 />
               </Box>
@@ -3668,6 +3608,11 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                   }))}
                   remoteSearch
                   loading={isProductPickerSearching}
+                  hasMore={productPickerOptions.length < productPickerTotal}
+                  loadingMore={isProductPickerLoadingMore}
+                  onLoadMore={() => {
+                    if (!isProductPickerLoading) setProductPickerPage((page) => page + 1);
+                  }}
                   onSearchChange={(query) => {
                     setProductPickerSearch(query);
                     setProductPickerPage(1);
@@ -3692,13 +3637,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                   placeholder="Search Wix Store products..."
                   emptyStateMessage="No products found."
                 />
-                {productPickerTotal > 20 ? (
-                  <Pagination
-                    currentPage={productPickerPage}
-                    totalPages={Math.ceil(productPickerTotal / 20)}
-                    onChange={(event) => setProductPickerPage(event.page)}
-                  />
-                ) : null}
                 {productAuctionConflictMessage ? (
                   <span style={{ color: '#d93025', fontSize: 12 }}>
                     {productAuctionConflictMessage}
@@ -3718,8 +3656,7 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
 
             <FormField
               label="Auction Title"
-              required
-              infoContent="Give your auction a clear and catchy title."
+              infoContent="Optional. Leave blank to use the product name."
             >
               <Input
                 value={form.title}
@@ -4129,91 +4066,6 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                 </div>
               )}
             </div>
-          </Card.Content>
-        </Card>
-      ) : null}
-
-      {tab === 'sitePlugins' ? (
-        <Card>
-          <Card.Header
-            title="Site Plugin Placement"
-            subtitle=""
-            suffix={
-              <Button
-                size="small"
-                priority="secondary"
-                prefixIcon={<Icons.Refresh />}
-                disabled={isPluginStatusLoading || placingPluginId !== null}
-                onClick={() => void refreshPluginPlacementStatus()}
-              >
-                Refresh status
-              </Button>
-            }
-          />
-          <Card.Content>
-            {pluginPlacementResult?.error ? (
-              <div role="alert">
-                <Text size="small" secondary>
-                  Unable to load plugin placement status: {pluginPlacementResult.error}
-                </Text>
-              </div>
-            ) : isPluginStatusLoading && !pluginPlacementResult ? (
-              <Loader size="small" />
-            ) : pluginPlacementResult ? (
-              sitePluginRows.length === 0 ? (
-                <Box padding="24px">
-                  <Text secondary>No site plugins found for this app.</Text>
-                </Box>
-              ) : (
-                <Table
-                  data={sitePluginRows}
-                  columns={[
-                    {
-                      title: 'Plugin',
-                      render: (row) => row.name,
-                    },
-                    {
-                      title: 'Placement status',
-                      render: (row) => (
-                        <Badge
-                          size="medium"
-                          skin={
-                            row.placedInSlot === true
-                              ? 'success'
-                              : row.placedInSlot === false
-                                ? 'warning'
-                                : 'neutralStandard'
-                          }
-                          uppercase={false}
-                        >
-                          {row.placedInSlot === true
-                            ? 'Placed'
-                            : row.placedInSlot === false
-                              ? 'Not placed'
-                              : 'Not reported'}
-                        </Badge>
-                      ),
-                    },
-                    {
-                      title: 'Action',
-                      render: (row) => {
-                        return row.placedInSlot === false ? (
-                          <Button
-                            size="small"
-                            disabled={placingPluginId !== null || isPluginStatusLoading}
-                            onClick={() => void handlePlaceSitePlugin(row)}
-                          >
-                            {placingPluginId === row.pluginId ? 'Placing…' : 'Place'}
-                          </Button>
-                        ) : null;
-                      },
-                    },
-                  ]}
-                >
-                  <Table.Content />
-                </Table>
-              )
-            ) : null}
           </Card.Content>
         </Card>
       ) : null}
@@ -4912,6 +4764,52 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
               <Text>
                 You are about to delete <strong>{auctionToDelete.title}</strong>.
                 Any bids associated with this auction will also be removed from the dashboard views.
+              </Text>
+            </Box>
+          </CustomModalLayout>
+        </Modal>
+      ) : null}
+
+      {isBulkDeleteModalOpen ? (
+        <Modal
+          isOpen={true}
+          onRequestClose={() => {
+            if (!isBulkDeleting) {
+              setIsBulkDeleteModalOpen(false);
+            }
+          }}
+          shouldCloseOnOverlayClick={!isBulkDeleting}
+        >
+          <CustomModalLayout
+            title={`Delete ${selectedAuctionIds.length} Auction${selectedAuctionIds.length === 1 ? '' : 's'}?`}
+            subtitle="Are you sure you want to permanently delete the selected auctions? This action cannot be undone."
+            primaryButtonText={
+              isBulkDeleting
+                ? 'Deleting...'
+                : `Delete ${selectedAuctionIds.length} Auction${selectedAuctionIds.length === 1 ? '' : 's'}`
+            }
+            primaryButtonOnClick={handleConfirmBulkDelete}
+            primaryButtonProps={{
+              skin: 'destructive',
+              disabled: isBulkDeleting,
+              prefixIcon: isBulkDeleting ? <Loader size="tiny" /> : undefined,
+            }}
+            secondaryButtonText="Cancel"
+            secondaryButtonOnClick={() => {
+              if (!isBulkDeleting) {
+                setIsBulkDeleteModalOpen(false);
+              }
+            }}
+            onCloseButtonClick={() => {
+              if (!isBulkDeleting) {
+                setIsBulkDeleteModalOpen(false);
+              }
+            }}
+          >
+            <Box padding="24px">
+              <Text>
+                You are about to delete <strong>{selectedAuctionIds.length}</strong> auction{selectedAuctionIds.length === 1 ? '' : 's'}.
+                Any bids associated with these auctions will also be permanently removed.
               </Text>
             </Box>
           </CustomModalLayout>

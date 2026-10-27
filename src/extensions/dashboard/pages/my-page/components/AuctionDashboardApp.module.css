@@ -227,95 +227,90 @@
   gap: 10px;
 }
 
-.guideStepsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+/* ─── Setup Checklist ──────────────────────────────────────────────── */
+.checklistTrack {
+  height: 6px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: var(--ui-primary-soft);
+  overflow: hidden;
 }
 
-.guideStepCard {
+.checklistFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ui-primary);
+  transition: width 0.3s ease;
+}
+
+.checklist {
   display: flex;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  background: #ffffff;
-  box-shadow: var(--ui-shadow-sm);
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.guideStepNumber {
+.checklistItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: #ffffff;
+}
+
+.checklistItemDone {
+  background: #faf9f6;
+}
+
+.checklistItemDone .checklistBody > :first-child {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.checklistMark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: var(--ui-primary-soft);
-  color: var(--ui-primary);
-  font-family: var(--ui-font-display);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.guideStepContent {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.guideChecklist {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.guideChecklistItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.guideChecklistBullet {
-  width: 8px;
-  height: 8px;
-  margin-top: 6px;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border: 2px solid var(--ui-border);
   border-radius: 50%;
-  background: var(--ui-primary);
-  box-shadow: 0 0 0 3px var(--ui-primary-soft);
+  color: #ffffff;
   flex-shrink: 0;
 }
 
-.guideSectionList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.checklistItemDone .checklistMark {
+  border-color: var(--ui-success);
+  background: var(--ui-success);
 }
 
-.guideSectionCard {
+.checklistBody {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
-  border-radius: var(--ui-radius);
-  background: #ffffff;
-  border: 1px solid var(--ui-border);
+  gap: 4px;
+  min-width: 0;
 }
 
-.guideWorkflowGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+.checklistActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
 }
 
-.guideWorkflowCard {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  background: #ffffff;
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ─── Monitor Tab ─────────────────────────────────────────────────── */

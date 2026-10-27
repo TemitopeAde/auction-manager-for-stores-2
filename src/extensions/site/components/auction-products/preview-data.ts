@@ -1,4 +1,8 @@
-import type { AuctionView, PublicAuctionProduct } from '../../../../lib/auction/types';
+import type {
+  AuctionView,
+  PublicAuctionProduct,
+  PublicAuctionProductQuery,
+} from '../../../../lib/auction/types';
 import { getMockDashboardPayload } from '../../../../lib/auction/mock';
 import type { AuctionDataSource } from './auction-data';
 
@@ -11,7 +15,7 @@ const SAMPLE_IMAGES = [
 
 function buildSampleProducts(): Array<PublicAuctionProduct> {
   const { auctions } = getMockDashboardPayload();
-  return auctions.slice(0, SAMPLE_IMAGES.length).map((auction, index) => ({
+  const sampleAuctionProducts = auctions.slice(0, SAMPLE_IMAGES.length).map((auction, index) => ({
     id: `sample-product-${index + 1}`,
     _id: `sample-product-${index + 1}`,
     name: auction.title || `Sample lot ${index + 1}`,
@@ -21,17 +25,52 @@ function buildSampleProducts(): Array<PublicAuctionProduct> {
     raw: null,
     auction,
   }));
+
+  const sampleRegularProducts: Array<PublicAuctionProduct> = [
+    {
+      id: 'sample-product-regular-1',
+      _id: 'sample-product-regular-1',
+      name: 'Standard Catalog Item (No Auction)',
+      slug: 'standard-catalog-item',
+      mainImageUrl: SAMPLE_IMAGES[0],
+      priceRange: { min: 50, max: 50, currency: null },
+      raw: null,
+      auction: null,
+    },
+  ];
+
+  return [...sampleAuctionProducts, ...sampleRegularProducts];
 }
 
 /** Static sample data for the editor stage: no network, polling, or site APIs. */
 export const previewDataSource: AuctionDataSource = {
   live: false,
-  listPublicAuctionProducts: async () => ({
-    products: buildSampleProducts(),
-    cursor: null,
-    nextCursor: null,
-    hasNextPage: false,
-  }),
+  listPublicAuctionProducts: async (query?: PublicAuctionProductQuery) => {
+    let all = buildSampleProducts();
+    const filter = query?.auctionFilter ?? 'active';
+
+    if (filter === 'active') {
+      all = all.filter((p) => p.auction !== null);
+    } else if (filter === 'inactive') {
+      all = all.filter((p) => p.auction === null);
+    }
+
+    if (query?.search?.trim()) {
+      const q = query.search.trim().toLowerCase();
+      all = all.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.auction?.title && p.auction.title.toLowerCase().includes(q)),
+      );
+    }
+
+    return {
+      products: all,
+      cursor: null,
+      nextCursor: null,
+      hasNextPage: false,
+    };
+  },
   listPublicAuctions: async (): Promise<Array<AuctionView>> =>
     buildSampleProducts().flatMap((product) => (product.auction ? [product.auction] : [])),
   getPublicAuctionSettings: async () => ({

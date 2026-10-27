@@ -24,6 +24,7 @@
     "@wix/data": "^1.0.527",
     "@wix/design-system": "^1.154.0",
     "@wix/ecom": "^1.0.2572",
+    "@wix/editor": "^1.356.0",
     "@wix/email-transmissions": "^1.0.13",
     "@wix/essentials": "^0.1.23",
     "@wix/members": "^1.0.532",
@@ -39,7 +40,8 @@
     "astro": "^5.8.0",
     "classnames": "^2.5.1",
     "deepmerge": "^4.3.1",
-    "react-quill": "^2.0.0"
+    "react-quill": "^2.0.0",
+    "react-to-webcomponent": "^2.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
@@ -53,7 +55,7 @@
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/parser": "^8.71.2",
     "@wix/astro-wix-hosting-adapter": "^2.0.0",
-    "@wix/cli": "^1.1.263",
+    "@wix/cli": "^1.2.2",
     "@wix/editor-react-types": "^1.0.106",
     "@wix/sdk-types": "^1.0.0",
     "axe-core": "^4.14.0",

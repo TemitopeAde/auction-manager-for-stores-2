@@ -54,6 +54,7 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
     language,
     autoDetectLanguage,
     pageSize,
+    auctionFilter: initialAuctionFilter = 'active',
     elementProps,
   } = props;
 
@@ -68,7 +69,9 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
   const [products, setProducts] = useState<Array<ProductCard>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [auctionFilter, setAuctionFilter] = useState<AuctionFilterValue>('all');
+  const [auctionFilter, setAuctionFilter] = useState<AuctionFilterValue>(
+    initialAuctionFilter ?? 'active',
+  );
   const [timerFilter, setTimerFilter] = useState<TimerFilterValue>('all');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -103,6 +106,12 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
     const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (initialAuctionFilter) {
+      setAuctionFilter(initialAuctionFilter);
+    }
+  }, [initialAuctionFilter]);
 
   useEffect(() => {
     let active = true;
@@ -423,9 +432,12 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
     [data],
   );
 
+  const skeletonCount = isCarousel ? 4 : Math.min(Math.max(pageSize ?? 4, 4), 8);
   const cards: Array<ProductCard | null> = showSkeleton
-    ? Array.from({ length: SKELETON_CARD_COUNT }, () => null)
-    : products;
+    ? Array.from({ length: skeletonCount }, () => null)
+    : isLoading && !isRefreshing && products.length > 0
+      ? [...products, ...Array.from({ length: Math.min(4, pageSize ?? 4) }, () => null)]
+      : products;
 
   return (
     <section
@@ -557,12 +569,24 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
         />
       </div>
 
-      {!showSkeleton && !loadError && products.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p className={styles.emptyTitle}>{translations.emptyTitle}</p>
-          <p className={styles.emptyCopy}>{translations.emptyDescription}</p>
-        </div>
-      ) : null}
+      <div className={styles.emptyState} hidden={showSkeleton || Boolean(loadError) || products.length > 0}>
+        <p
+          {...elementProps?.emptyTitle}
+          className={classNames('auction-products-empty-title', styles.emptyTitle, elementProps?.emptyTitle?.className)}
+        >
+          {translations.emptyTitle}
+        </p>
+        <p
+          {...elementProps?.emptyDescription}
+          className={classNames(
+            'auction-products-empty-description',
+            styles.emptyCopy,
+            elementProps?.emptyDescription?.className,
+          )}
+        >
+          {translations.emptyDescription}
+        </p>
+      </div>
 
       <div className={styles.loadMoreRow}>
         <button
@@ -595,7 +619,16 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
       >
         <div className={styles.dialogHeader}>
           <div>
-            <p className={styles.dialogEyebrow}>{selectedProduct?.name}</p>
+            <p
+              {...elementProps?.dialogProductName}
+              className={classNames(
+                'auction-products-dialog-product-name',
+                styles.dialogEyebrow,
+                elementProps?.dialogProductName?.className,
+              )}
+            >
+              {selectedProduct?.name}
+            </p>
             <h3
               {...elementProps?.dialogTitle}
               id={dialogTitleId}
@@ -616,7 +649,8 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
           </div>
           <button
             type="button"
-            className={styles.closeButton}
+            {...elementProps?.closeButton}
+            className={classNames('auction-products-close-button', styles.closeButton, elementProps?.closeButton?.className)}
             onClick={closeBidDialog}
             aria-label={ARIA_LABELS.closeBidDialog}
             disabled={submittingBid}
@@ -633,7 +667,11 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
           <form className={styles.bidForm} onSubmit={handleBidSubmit} noValidate>
             {emailBiddingEnabled ? (
               <>
-                <label className={styles.fieldLabel} htmlFor={`${id}-bidder-email`}>
+                <label
+                  {...elementProps?.fieldLabel}
+                  className={classNames('auction-products-field-label', styles.fieldLabel, elementProps?.fieldLabel?.className)}
+                  htmlFor={`${id}-bidder-email`}
+                >
                   {BIDDER_EMAIL_LABEL}
                 </label>
                 <input
@@ -652,7 +690,11 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
                 />
               </>
             ) : null}
-            <label className={styles.fieldLabel} htmlFor={`${id}-bid-amount`}>
+            <label
+              {...elementProps?.fieldLabel}
+              className={classNames('auction-products-field-label', styles.fieldLabel, elementProps?.fieldLabel?.className)}
+              htmlFor={`${id}-bid-amount`}
+            >
               {translations.bidAmountLabel}
             </label>
             <input
@@ -668,6 +710,7 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
                 setBidError(null);
                 setBidSuccess(null);
               }}
+              onWheel={(event) => event.currentTarget.blur()}
               placeholder={selectedAuction ? String(selectedAuction.minimumNextBid) : undefined}
               aria-describedby={`${id}-bid-helper`}
               className={classNames(
@@ -676,7 +719,11 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
                 elementProps?.dialogInput?.className,
               )}
             />
-            <p id={`${id}-bid-helper`} className={styles.dialogHelper}>
+            <p
+              {...elementProps?.helperText}
+              id={`${id}-bid-helper`}
+              className={classNames('auction-products-helper-text', styles.dialogHelper, elementProps?.helperText?.className)}
+            >
               {selectedAuction
                 ? `${selectedAuctionHasBids ? translations.minimumNextBidLabel : translations.startingBidLabel}: ${formatCurrency(
                     selectedAuctionHasBids ? selectedAuction.minimumNextBid : selectedAuction.startingPrice,
@@ -728,11 +775,13 @@ const AuctionCard: React.FC<AuctionCardProps> = (props) => {
   const auction = product?.auction ?? null;
   const isPlaceholder = product === null;
   const badgeState = getBadgeState(auction);
+  const openProduct = () => product && onView(product.id);
 
   return (
     <article
       {...elementProps?.card}
       aria-hidden={isPlaceholder || undefined}
+      onClick={isPlaceholder ? undefined : openProduct}
       className={classNames(
         'auction-products-card',
         styles.card,
@@ -743,13 +792,16 @@ const AuctionCard: React.FC<AuctionCardProps> = (props) => {
       <div className={styles.imageFrame}>
         {product ? (
           <img className={styles.image} src={product.image} alt={product.name || ARIA_LABELS.productImage(index)} />
-        ) : null}
+        ) : (
+          <div className={styles.skeletonShimmer} aria-hidden="true" />
+        )}
         <span
           {...elementProps?.statusBadge}
           className={classNames(
             'auction-products-status-badge',
             `auction-products-status-badge--${badgeState}`,
             styles.statusBadge,
+            isPlaceholder && styles.skeletonBadge,
             elementProps?.statusBadge?.className,
           )}
         >
@@ -762,56 +814,107 @@ const AuctionCard: React.FC<AuctionCardProps> = (props) => {
           className={classNames(
             'auction-products-product-name',
             styles.productName,
+            isPlaceholder && styles.skeletonTitle,
             elementProps?.productName?.className,
           )}
         >
-          {product?.name}
+          {isPlaceholder ? (
+            <>
+              <span className={styles.skeletonLine} style={{ width: '85%' }} aria-hidden="true" />
+              <span className={styles.skeletonLine} style={{ width: '55%' }} aria-hidden="true" />
+            </>
+          ) : (
+            <span
+              role="link"
+              tabIndex={0}
+              className={styles.productLink}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  openProduct();
+                }
+              }}
+            >
+              {product?.name}
+            </span>
+          )}
         </h3>
         <div className={styles.metaRow}>
           <span
             {...elementProps?.metaLabel}
-            className={classNames('auction-products-meta-label', styles.metaLabel, elementProps?.metaLabel?.className)}
+            className={classNames(
+              'auction-products-meta-label',
+              styles.metaLabel,
+              isPlaceholder && styles.skeletonMetaLabel,
+              elementProps?.metaLabel?.className,
+            )}
           >
-            {auction ? (auction.currentHighestBid !== null ? translations.currentBid : translations.startsAt) : ''}
+            {isPlaceholder ? (
+              <span className={styles.skeletonLine} style={{ width: '64px' }} aria-hidden="true" />
+            ) : auction ? (
+              auction.currentHighestBid !== null ? translations.currentBid : translations.startsAt
+            ) : (
+              ''
+            )}
           </span>
           <span
             {...elementProps?.metaValue}
-            className={classNames('auction-products-meta-value', styles.metaValue, elementProps?.metaValue?.className)}
+            className={classNames(
+              'auction-products-meta-value',
+              styles.metaValue,
+              isPlaceholder && styles.skeletonMetaValue,
+              elementProps?.metaValue?.className,
+            )}
           >
-            {auction ? formatCurrency(auction.currentHighestBid ?? auction.startingPrice, currency) : ''}
+            {isPlaceholder ? (
+              <span className={styles.skeletonLine} style={{ width: '74px' }} aria-hidden="true" />
+            ) : auction ? (
+              formatCurrency(auction.currentHighestBid ?? auction.startingPrice, currency)
+            ) : (
+              ''
+            )}
           </span>
         </div>
         <p
           {...elementProps?.timing}
-          className={classNames('auction-products-timing', styles.timing, elementProps?.timing?.className)}
+          className={classNames(
+            'auction-products-timing',
+            styles.timing,
+            isPlaceholder && styles.skeletonTiming,
+            elementProps?.timing?.className,
+          )}
         >
-          {auction ? formatAuctionTiming(auction, now, translations) : ''}
+          {isPlaceholder ? (
+            <span className={styles.skeletonLine} style={{ width: '110px' }} aria-hidden="true" />
+          ) : auction ? (
+            formatAuctionTiming(auction, now, translations)
+          ) : (
+            ''
+          )}
         </p>
         <div className={styles.cardActions}>
           <button
             type="button"
-            {...elementProps?.viewButton}
-            disabled={isPlaceholder}
-            onClick={() => product && onView(product.id)}
-            className={classNames(
-              'auction-products-view-button',
-              styles.viewButton,
-              elementProps?.viewButton?.className,
-            )}
-          >
-            {translations.viewProduct}
-          </button>
-          <button
-            type="button"
             {...elementProps?.bidButton}
             disabled={isPlaceholder}
-            onClick={() => product && onBid(product)}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (product) {
+                onBid(product);
+              }
+            }}
             aria-label={ARIA_LABELS.placeBidOn(product?.name ?? '')}
-            className={classNames('auction-products-bid-button', styles.bidButton, elementProps?.bidButton?.className)}
+            className={classNames(
+              'auction-products-bid-button',
+              styles.bidButton,
+              isPlaceholder && styles.skeletonButton,
+              elementProps?.bidButton?.className,
+            )}
           >
-            <span className={styles.bidIcon} aria-hidden="true">
-              $
-            </span>
+            {isPlaceholder ? (
+              <span className={styles.skeletonLine} style={{ width: '75px', height: '14px', margin: '0 auto' }} aria-hidden="true" />
+            ) : null}
+            <span hidden={isPlaceholder}>{translations.placeBidButton}</span>
           </button>
         </div>
       </div>

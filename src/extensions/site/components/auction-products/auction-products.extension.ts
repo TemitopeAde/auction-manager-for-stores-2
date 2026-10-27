@@ -32,6 +32,22 @@ export default extensions.editorReactComponent({
             options: SUPPORTED_LANGUAGE_OPTIONS.map(({ id, value }) => ({ value: id, displayName: value })),
           },
         },
+        auctionFilter: {
+          displayName: 'Default Filter',
+          dataType: 'textEnum',
+          textEnum: {
+            options: [
+              { value: 'active', displayName: 'Linked to auction' },
+              { value: 'all', displayName: 'All products' },
+              { value: 'inactive', displayName: 'Inactive products' },
+            ],
+          },
+        },
+      },
+      cssProperties: {
+        background: {
+          defaultValue: 'transparent',
+        },
       },
     },
     { arrayMerge: (_target, source) => source }

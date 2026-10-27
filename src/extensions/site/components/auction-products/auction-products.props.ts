@@ -1,5 +1,6 @@
 import type { A11y, Direction } from '@wix/editor-react-types';
 import type { SupportedLanguageCode } from '../../../../site/shared/languageCodes';
+import type { AuctionFilterValue } from './auction-products.utils';
 
 type PartProps = { className?: string };
 
@@ -25,6 +26,8 @@ export type AuctionProductsProps = {
    * @max 60
    */
   pageSize?: number;
+  /** Default product filter: only products linked to an auction ('active'), all products, or inactive. */
+  auctionFilter?: AuctionFilterValue;
 
   elementProps?: {
     header?: PartProps;
@@ -39,13 +42,18 @@ export type AuctionProductsProps = {
     metaLabel?: PartProps;
     metaValue?: PartProps;
     timing?: PartProps;
-    viewButton?: PartProps;
+    emptyTitle?: PartProps;
+    emptyDescription?: PartProps;
     bidButton?: PartProps;
     carouselArrow?: PartProps;
     loadMoreButton?: PartProps;
     bidDialog?: PartProps;
+    dialogProductName?: PartProps;
     dialogTitle?: PartProps;
+    closeButton?: PartProps;
+    fieldLabel?: PartProps;
     dialogInput?: PartProps;
+    helperText?: PartProps;
     submitButton?: PartProps;
   };
 };
@@ -57,4 +65,5 @@ export const defaultProps = {
   language: 'en',
   autoDetectLanguage: true,
   pageSize: 24,
+  auctionFilter: 'active',
 } as const satisfies Omit<AuctionProductsProps, 'id' | 'className'>;

@@ -27,6 +27,10 @@ export interface MultiSelectProps {
   onSearchChange?: (query: string) => void;
   remoteSearch?: boolean;
   loading?: boolean;
+  /** Called when the user scrolls to the end of the options list. */
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
   delimiters?: string[];
   acceptOnBlur?: boolean;
   clearOnBlur?: boolean;
@@ -46,6 +50,9 @@ export const MultiSelect: FC<MultiSelectProps> = ({
   onSearchChange,
   remoteSearch = false,
   loading = false,
+  onLoadMore,
+  hasMore = false,
+  loadingMore = false,
   delimiters = [',', ';'],
   acceptOnBlur = true,
   placeholder = 'Type or select...',
@@ -58,6 +65,10 @@ export const MultiSelect: FC<MultiSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const onLoadMoreRef = useRef(onLoadMore);
+  onLoadMoreRef.current = onLoadMore;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -68,6 +79,27 @@ export const MultiSelect: FC<MultiSelectProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const canLoadMore = isOpen && !loading && hasMore && Boolean(onLoadMore);
+
+  // Observe a sentinel at the end of the list so the next page loads on scroll,
+  // and also when the first page is too short to fill the dropdown.
+  useEffect(() => {
+    if (!canLoadMore || loadingMore) return;
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMoreRef.current?.();
+        }
+      },
+      { root: dropdownRef.current, rootMargin: '0px 0px 40px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [canLoadMore, loadingMore, options.length]);
 
   const filteredOptions = options.filter(
     (opt) =>
@@ -158,25 +190,36 @@ export const MultiSelect: FC<MultiSelectProps> = ({
       </div>
 
       {isOpen && (
-        <div className={styles.dropdown}>
+        <div ref={dropdownRef} className={styles.dropdown}>
           {loading ? (
             <div className={styles.emptyState}>Searching products...</div>
           ) : filteredOptions.length > 0 ? (
-            filteredOptions.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                className={styles.option}
-                onClick={() => {
-                  onSelect?.(opt);
-                  setQuery('');
-                  onSearchChange?.('');
-                  setIsOpen(false);
-                }}
-              >
-                {opt.value}
-              </button>
-            ))
+            <>
+              {filteredOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={styles.option}
+                  onClick={() => {
+                    onSelect?.(opt);
+                    setQuery('');
+                    onSearchChange?.('');
+                    setIsOpen(false);
+                  }}
+                >
+                  {opt.value}
+                </button>
+              ))}
+              {canLoadMore || loadingMore ? (
+                <div ref={loadMoreRef} className={styles.emptyState}>
+                  {loadingMore ? 'Loading more...' : ''}
+                </div>
+              ) : null}
+            </>
+          ) : canLoadMore || loadingMore ? (
+            <div ref={loadMoreRef} className={styles.emptyState}>
+              Loading more...
+            </div>
           ) : (
             <div className={styles.emptyState}>{emptyStateMessage}</div>
           )}

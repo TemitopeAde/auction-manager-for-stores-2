@@ -185,10 +185,26 @@ export interface DashboardAuctionQuery {
   activeOnly?: boolean;
   page?: number;
   pageSize?: number;
+  /** Attach each auction's linked store product to the rows. */
+  includeLinkedProducts?: boolean;
+}
+
+export interface DashboardAuctionLinkedProduct {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface DashboardAuctionRow extends AuctionView {
+  /**
+   * Store product linked to the auction. Present only when the query sets
+   * `includeLinkedProducts`; null when the product could not be loaded.
+   */
+  linkedProduct?: DashboardAuctionLinkedProduct | null;
 }
 
 export interface DashboardAuctionResult {
-  rows: AuctionView[];
+  rows: DashboardAuctionRow[];
   total: number;
 }
 
@@ -313,7 +329,7 @@ export interface DashboardPageContextInput {
   productId?: string;
   productName?: string;
   returnToStores?: boolean;
-  tab?: 'monitor' | 'setup' | 'auctions';
+  tab?: 'overview' | 'monitor' | 'auctions';
 }
 
 export type PublicAuctionProductFilter = 'all' | 'active' | 'inactive';

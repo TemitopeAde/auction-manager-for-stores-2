@@ -142,6 +142,26 @@ export const editorElement = {
         "min": "4",
         "max": "60"
       }
+    },
+    "auctionFilter": {
+      "displayName": "Auction Filter",
+      "dataType": "textEnum",
+      "textEnum": {
+        "options": [
+          {
+            "value": "active",
+            "displayName": "Active"
+          },
+          {
+            "value": "all",
+            "displayName": "All"
+          },
+          {
+            "value": "inactive",
+            "displayName": "Inactive"
+          }
+        ]
+      }
     }
   },
   "elements": {
@@ -180,7 +200,9 @@ export const editorElement = {
           "width": {},
           "height": {},
           "overflow": {},
-          "mixBlendMode": {},
+          "mixBlendMode": {
+            "defaultValue": "normal"
+          },
           "display": {
             "display": {
               "displayValues": [
@@ -195,9 +217,6 @@ export const editorElement = {
           "marginInlineEnd": {},
           "gap": {
             "defaultValue": "8px"
-          },
-          "flexDirection": {
-            "defaultValue": "column"
           },
           "justifyContent": {},
           "alignItems": {
@@ -367,7 +386,9 @@ export const editorElement = {
                 "width": {},
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
@@ -392,16 +413,6 @@ export const editorElement = {
                   "displayName": "Focus",
                   "className": "auction-products-search--focus",
                   "pseudoClass": "focus"
-                },
-                "disabled": {
-                  "displayName": "Disabled",
-                  "className": "auction-products-search--disabled",
-                  "pseudoClass": "disabled"
-                },
-                "invalid": {
-                  "displayName": "Invalid",
-                  "className": "auction-products-search--invalid",
-                  "pseudoClass": "invalid"
                 }
               }
             }
@@ -471,7 +482,9 @@ export const editorElement = {
                 "width": {},
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
@@ -496,16 +509,6 @@ export const editorElement = {
                   "displayName": "Focus",
                   "className": "auction-products-auction-filter--focus",
                   "pseudoClass": "focus"
-                },
-                "disabled": {
-                  "displayName": "Disabled",
-                  "className": "auction-products-auction-filter--disabled",
-                  "pseudoClass": "disabled"
-                },
-                "invalid": {
-                  "displayName": "Invalid",
-                  "className": "auction-products-auction-filter--invalid",
-                  "pseudoClass": "invalid"
                 }
               }
             }
@@ -575,7 +578,9 @@ export const editorElement = {
                 "width": {},
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
@@ -600,16 +605,6 @@ export const editorElement = {
                   "displayName": "Focus",
                   "className": "auction-products-timer-filter--focus",
                   "pseudoClass": "focus"
-                },
-                "disabled": {
-                  "displayName": "Disabled",
-                  "className": "auction-products-timer-filter--disabled",
-                  "pseudoClass": "disabled"
-                },
-                "invalid": {
-                  "displayName": "Invalid",
-                  "className": "auction-products-timer-filter--invalid",
-                  "pseudoClass": "invalid"
                 }
               }
             }
@@ -627,9 +622,6 @@ export const editorElement = {
           "selectable": false
         },
         "cssProperties": {
-          "color": {
-            "defaultValue": "#172126"
-          },
           "background": {
             "defaultValue": "#ffffff",
             "statesDefaultValues": {
@@ -672,7 +664,9 @@ export const editorElement = {
             "defaultValue": "44px"
           },
           "overflow": {},
-          "mixBlendMode": {},
+          "mixBlendMode": {
+            "defaultValue": "normal"
+          },
           "display": {
             "display": {
               "displayValues": [
@@ -690,11 +684,13 @@ export const editorElement = {
           "textTransform": {},
           "textAlign": {},
           "textShadow": {},
+          "color": {
+            "defaultValue": "#172126"
+          },
           "marginTop": {},
           "marginBottom": {},
           "marginInlineStart": {},
           "marginInlineEnd": {},
-          "flexDirection": {},
           "justifyContent": {},
           "alignItems": {},
           "alignSelf": {}
@@ -704,11 +700,6 @@ export const editorElement = {
             "displayName": "Hover",
             "className": "auction-products-carousel-arrow--hover",
             "pseudoClass": "hover"
-          },
-          "disabled": {
-            "displayName": "Disabled",
-            "className": "auction-products-carousel-arrow--disabled",
-            "pseudoClass": "disabled"
           }
         }
       }
@@ -738,10 +729,18 @@ export const editorElement = {
           "borderInlineEnd": {
             "defaultValue": "1px solid #e5e1da"
           },
-          "paddingTop": {},
-          "paddingBottom": {},
-          "paddingInlineStart": {},
-          "paddingInlineEnd": {},
+          "paddingTop": {
+            "defaultValue": "0"
+          },
+          "paddingBottom": {
+            "defaultValue": "0"
+          },
+          "paddingInlineStart": {
+            "defaultValue": "0"
+          },
+          "paddingInlineEnd": {
+            "defaultValue": "0"
+          },
           "borderStartStartRadius": {
             "defaultValue": "12px"
           },
@@ -755,14 +754,16 @@ export const editorElement = {
             "defaultValue": "12px"
           },
           "boxShadow": {
-            "defaultValue": "0 8px 24px rgba(65,50,34,0.08)"
+            "defaultValue": "0 4px 16px rgba(65,50,34,0.04)"
           },
           "width": {},
           "height": {},
           "overflow": {
             "defaultValue": "hidden"
           },
-          "mixBlendMode": {},
+          "mixBlendMode": {
+            "defaultValue": "normal"
+          },
           "display": {
             "display": {
               "displayValues": [
@@ -775,9 +776,8 @@ export const editorElement = {
           "marginBottom": {},
           "marginInlineStart": {},
           "marginInlineEnd": {},
-          "gap": {},
-          "flexDirection": {
-            "defaultValue": "column"
+          "gap": {
+            "defaultValue": "0"
           },
           "justifyContent": {},
           "alignItems": {},
@@ -888,6 +888,14 @@ export const editorElement = {
                 "color": {
                   "defaultValue": "#172126"
                 },
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "flex"
+                    ]
+                  }
+                },
                 "marginTop": {
                   "defaultValue": "0"
                 },
@@ -900,14 +908,36 @@ export const editorElement = {
                 "marginInlineEnd": {
                   "defaultValue": "0"
                 },
-                "display": {
-                  "display": {
-                    "displayValues": [
-                      "none",
-                      "block"
-                    ]
-                  }
+                "background": {},
+                "borderTop": {},
+                "borderBottom": {},
+                "borderInlineStart": {},
+                "borderInlineEnd": {},
+                "paddingTop": {
+                  "defaultValue": "0"
                 },
+                "paddingBottom": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineStart": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineEnd": {
+                  "defaultValue": "0"
+                },
+                "borderStartStartRadius": {},
+                "borderStartEndRadius": {},
+                "borderEndStartRadius": {},
+                "borderEndEndRadius": {},
+                "boxShadow": {},
+                "width": {},
+                "height": {},
+                "overflow": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
+                "justifyContent": {},
+                "alignItems": {},
                 "alignSelf": {}
               }
             }
@@ -934,15 +964,49 @@ export const editorElement = {
                 "color": {
                   "defaultValue": "#4b5563"
                 },
-                "marginInlineStart": {},
-                "marginInlineEnd": {},
                 "display": {
                   "display": {
                     "displayValues": [
                       "none",
-                      "inline"
+                      "inlineFlex"
                     ]
                   }
+                },
+                "marginTop": {},
+                "marginBottom": {},
+                "marginInlineStart": {},
+                "marginInlineEnd": {},
+                "background": {},
+                "borderTop": {},
+                "borderBottom": {},
+                "borderInlineStart": {},
+                "borderInlineEnd": {},
+                "paddingTop": {
+                  "defaultValue": "0"
+                },
+                "paddingBottom": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineStart": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineEnd": {
+                  "defaultValue": "0"
+                },
+                "borderStartStartRadius": {},
+                "borderStartEndRadius": {},
+                "borderEndStartRadius": {},
+                "borderEndEndRadius": {},
+                "boxShadow": {},
+                "width": {},
+                "height": {},
+                "overflow": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
+                "justifyContent": {},
+                "alignItems": {
+                  "defaultValue": "center"
                 },
                 "alignSelf": {}
               }
@@ -970,15 +1034,49 @@ export const editorElement = {
                 "color": {
                   "defaultValue": "#172126"
                 },
-                "marginInlineStart": {},
-                "marginInlineEnd": {},
                 "display": {
                   "display": {
                     "displayValues": [
                       "none",
-                      "inline"
+                      "inlineFlex"
                     ]
                   }
+                },
+                "marginTop": {},
+                "marginBottom": {},
+                "marginInlineStart": {},
+                "marginInlineEnd": {},
+                "background": {},
+                "borderTop": {},
+                "borderBottom": {},
+                "borderInlineStart": {},
+                "borderInlineEnd": {},
+                "paddingTop": {
+                  "defaultValue": "0"
+                },
+                "paddingBottom": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineStart": {
+                  "defaultValue": "0"
+                },
+                "paddingInlineEnd": {
+                  "defaultValue": "0"
+                },
+                "borderStartStartRadius": {},
+                "borderStartEndRadius": {},
+                "borderEndStartRadius": {},
+                "borderEndEndRadius": {},
+                "boxShadow": {},
+                "width": {},
+                "height": {},
+                "overflow": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
+                "justifyContent": {},
+                "alignItems": {
+                  "defaultValue": "center"
                 },
                 "alignSelf": {}
               }
@@ -1008,6 +1106,14 @@ export const editorElement = {
                 "color": {
                   "defaultValue": "#374151"
                 },
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "flex"
+                    ]
+                  }
+                },
                 "marginTop": {
                   "defaultValue": "0"
                 },
@@ -1020,116 +1126,39 @@ export const editorElement = {
                 "marginInlineEnd": {
                   "defaultValue": "0"
                 },
-                "display": {
-                  "display": {
-                    "displayValues": [
-                      "none",
-                      "block"
-                    ]
-                  }
-                },
-                "alignSelf": {}
-              }
-            }
-          },
-          "auctionProductsViewButton": {
-            "elementType": "inlineElement",
-            "inlineElement": {
-              "selector": ".auction-products-view-button",
-              "displayName": "View Button",
-              "behaviors": {
-                "removable": true,
-                "selectable": false
-              },
-              "cssProperties": {
-                "color": {
-                  "defaultValue": "#ffffff"
-                },
-                "background": {
-                  "defaultValue": "#172126",
-                  "statesDefaultValues": {
-                    "hover": "#2f3d46"
-                  }
-                },
-                "borderTop": {
-                  "defaultValue": "none"
-                },
-                "borderBottom": {
-                  "defaultValue": "none"
-                },
-                "borderInlineStart": {
-                  "defaultValue": "none"
-                },
-                "borderInlineEnd": {
-                  "defaultValue": "none"
-                },
+                "background": {},
+                "borderTop": {},
+                "borderBottom": {},
+                "borderInlineStart": {},
+                "borderInlineEnd": {},
                 "paddingTop": {
-                  "defaultValue": "10px"
+                  "defaultValue": "0"
                 },
                 "paddingBottom": {
-                  "defaultValue": "10px"
+                  "defaultValue": "0"
                 },
                 "paddingInlineStart": {
-                  "defaultValue": "14px"
+                  "defaultValue": "0"
                 },
                 "paddingInlineEnd": {
-                  "defaultValue": "14px"
+                  "defaultValue": "0"
                 },
-                "borderStartStartRadius": {
-                  "defaultValue": "8px"
-                },
-                "borderStartEndRadius": {
-                  "defaultValue": "8px"
-                },
-                "borderEndStartRadius": {
-                  "defaultValue": "8px"
-                },
-                "borderEndEndRadius": {
-                  "defaultValue": "8px"
-                },
+                "borderStartStartRadius": {},
+                "borderStartEndRadius": {},
+                "borderEndStartRadius": {},
+                "borderEndEndRadius": {},
                 "boxShadow": {},
                 "width": {},
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
-                "marginTop": {},
-                "marginBottom": {},
-                "marginInlineStart": {},
-                "marginInlineEnd": {},
-                "display": {
-                  "display": {
-                    "displayValues": [
-                      "none",
-                      "inlineBlock"
-                    ]
-                  }
+                "mixBlendMode": {
+                  "defaultValue": "normal"
                 },
-                "font": {
-                  "defaultValue": "700 14px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+                "justifyContent": {},
+                "alignItems": {
+                  "defaultValue": "center"
                 },
-                "lineHeight": {},
-                "letterSpacing": {
-                  "defaultValue": "0.04em"
-                },
-                "textDecorationLine": {},
-                "textTransform": {
-                  "defaultValue": "uppercase"
-                },
-                "textAlign": {},
-                "textShadow": {},
                 "alignSelf": {}
-              },
-              "states": {
-                "hover": {
-                  "displayName": "Hover",
-                  "className": "auction-products-view-button--hover",
-                  "pseudoClass": "hover"
-                },
-                "disabled": {
-                  "displayName": "Disabled",
-                  "className": "auction-products-view-button--disabled",
-                  "pseudoClass": "disabled"
-                }
               }
             }
           },
@@ -1143,9 +1172,6 @@ export const editorElement = {
                 "selectable": false
               },
               "cssProperties": {
-                "color": {
-                  "defaultValue": "#ffffff"
-                },
                 "background": {
                   "defaultValue": "#8c6b45",
                   "statesDefaultValues": {
@@ -1165,16 +1191,16 @@ export const editorElement = {
                   "defaultValue": "none"
                 },
                 "paddingTop": {
-                  "defaultValue": "0"
+                  "defaultValue": "10px"
                 },
                 "paddingBottom": {
-                  "defaultValue": "0"
+                  "defaultValue": "10px"
                 },
                 "paddingInlineStart": {
-                  "defaultValue": "0"
+                  "defaultValue": "14px"
                 },
                 "paddingInlineEnd": {
-                  "defaultValue": "0"
+                  "defaultValue": "14px"
                 },
                 "borderStartStartRadius": {
                   "defaultValue": "8px"
@@ -1188,13 +1214,17 @@ export const editorElement = {
                 "borderEndEndRadius": {
                   "defaultValue": "8px"
                 },
-                "boxShadow": {},
-                "width": {
-                  "defaultValue": "44px"
+                "boxShadow": {
+                  "defaultValue": "none"
                 },
+                "width": {},
                 "height": {},
-                "overflow": {},
-                "mixBlendMode": {},
+                "overflow": {
+                  "defaultValue": "hidden"
+                },
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "display": {
                   "display": {
                     "displayValues": [
@@ -1207,16 +1237,22 @@ export const editorElement = {
                   "defaultValue": "700 14px 'Helvetica Neue',Helvetica,Arial,sans-serif"
                 },
                 "lineHeight": {},
-                "letterSpacing": {},
+                "letterSpacing": {
+                  "defaultValue": "0.04em"
+                },
                 "textDecorationLine": {},
-                "textTransform": {},
+                "textTransform": {
+                  "defaultValue": "uppercase"
+                },
                 "textAlign": {},
                 "textShadow": {},
+                "color": {
+                  "defaultValue": "#ffffff"
+                },
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
                 "marginInlineEnd": {},
-                "flexDirection": {},
                 "justifyContent": {
                   "defaultValue": "center"
                 },
@@ -1242,6 +1278,98 @@ export const editorElement = {
         }
       }
     },
+    "auctionProductsEmptyTitle": {
+      "elementType": "inlineElement",
+      "inlineElement": {
+        "selector": ".auction-products-empty-title",
+        "displayName": "Empty Title",
+        "behaviors": {
+          "removable": true,
+          "selectable": false
+        },
+        "cssProperties": {
+          "font": {
+            "defaultValue": "700 18px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+          },
+          "lineHeight": {},
+          "letterSpacing": {},
+          "textDecorationLine": {},
+          "textTransform": {},
+          "textAlign": {},
+          "textShadow": {},
+          "color": {
+            "defaultValue": "#172126"
+          },
+          "marginTop": {
+            "defaultValue": "0"
+          },
+          "marginBottom": {
+            "defaultValue": "4px"
+          },
+          "marginInlineStart": {
+            "defaultValue": "0"
+          },
+          "marginInlineEnd": {
+            "defaultValue": "0"
+          },
+          "display": {
+            "display": {
+              "displayValues": [
+                "none",
+                "block"
+              ]
+            }
+          },
+          "alignSelf": {}
+        }
+      }
+    },
+    "auctionProductsEmptyDescription": {
+      "elementType": "inlineElement",
+      "inlineElement": {
+        "selector": ".auction-products-empty-description",
+        "displayName": "Empty Description",
+        "behaviors": {
+          "removable": true,
+          "selectable": false
+        },
+        "cssProperties": {
+          "font": {
+            "defaultValue": "15px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+          },
+          "lineHeight": {},
+          "letterSpacing": {},
+          "textDecorationLine": {},
+          "textTransform": {},
+          "textAlign": {},
+          "textShadow": {},
+          "color": {
+            "defaultValue": "#4b5563"
+          },
+          "marginTop": {
+            "defaultValue": "0"
+          },
+          "marginBottom": {
+            "defaultValue": "0"
+          },
+          "marginInlineStart": {
+            "defaultValue": "0"
+          },
+          "marginInlineEnd": {
+            "defaultValue": "0"
+          },
+          "display": {
+            "display": {
+              "displayValues": [
+                "none",
+                "block"
+              ]
+            }
+          },
+          "alignSelf": {}
+        }
+      }
+    },
     "auctionProductsLoadMoreButton": {
       "elementType": "inlineElement",
       "inlineElement": {
@@ -1252,9 +1380,6 @@ export const editorElement = {
           "selectable": false
         },
         "cssProperties": {
-          "color": {
-            "defaultValue": "#172126"
-          },
           "background": {
             "defaultValue": "#ffffff",
             "statesDefaultValues": {
@@ -1301,7 +1426,9 @@ export const editorElement = {
           "width": {},
           "height": {},
           "overflow": {},
-          "mixBlendMode": {},
+          "mixBlendMode": {
+            "defaultValue": "normal"
+          },
           "marginTop": {},
           "marginBottom": {},
           "marginInlineStart": {},
@@ -1323,6 +1450,9 @@ export const editorElement = {
           "textTransform": {},
           "textAlign": {},
           "textShadow": {},
+          "color": {
+            "defaultValue": "#172126"
+          },
           "alignSelf": {}
         },
         "states": {
@@ -1396,7 +1526,9 @@ export const editorElement = {
           },
           "height": {},
           "overflow": {},
-          "mixBlendMode": {},
+          "mixBlendMode": {
+            "defaultValue": "normal"
+          },
           "marginTop": {},
           "marginBottom": {},
           "marginInlineStart": {},
@@ -1412,6 +1544,51 @@ export const editorElement = {
           "alignSelf": {}
         },
         "elements": {
+          "auctionProductsDialogProductName": {
+            "elementType": "inlineElement",
+            "inlineElement": {
+              "selector": ".auction-products-dialog-product-name",
+              "displayName": "Dialog Product Name",
+              "behaviors": {
+                "removable": true,
+                "selectable": false
+              },
+              "cssProperties": {
+                "font": {
+                  "defaultValue": "14px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+                },
+                "lineHeight": {},
+                "letterSpacing": {},
+                "textDecorationLine": {},
+                "textTransform": {},
+                "textAlign": {},
+                "textShadow": {},
+                "color": {
+                  "defaultValue": "#4b5563"
+                },
+                "marginTop": {
+                  "defaultValue": "0"
+                },
+                "marginBottom": {
+                  "defaultValue": "4px"
+                },
+                "marginInlineStart": {
+                  "defaultValue": "0"
+                },
+                "marginInlineEnd": {
+                  "defaultValue": "0"
+                },
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "block"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "auctionProductsDialogTitle": {
             "elementType": "inlineElement",
             "inlineElement": {
@@ -1451,6 +1628,134 @@ export const editorElement = {
                     "displayValues": [
                       "none",
                       "block"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "auctionProductsCloseButton": {
+            "elementType": "inlineElement",
+            "inlineElement": {
+              "selector": ".auction-products-close-button",
+              "displayName": "Close Button",
+              "behaviors": {
+                "removable": true,
+                "selectable": false
+              },
+              "cssProperties": {
+                "background": {
+                  "defaultValue": "#f3f4f6"
+                },
+                "borderTop": {
+                  "defaultValue": "none"
+                },
+                "borderBottom": {
+                  "defaultValue": "none"
+                },
+                "borderInlineStart": {
+                  "defaultValue": "none"
+                },
+                "borderInlineEnd": {
+                  "defaultValue": "none"
+                },
+                "paddingTop": {},
+                "paddingBottom": {},
+                "paddingInlineStart": {},
+                "paddingInlineEnd": {},
+                "borderStartStartRadius": {
+                  "defaultValue": "50%"
+                },
+                "borderStartEndRadius": {
+                  "defaultValue": "50%"
+                },
+                "borderEndStartRadius": {
+                  "defaultValue": "50%"
+                },
+                "borderEndEndRadius": {
+                  "defaultValue": "50%"
+                },
+                "boxShadow": {},
+                "width": {
+                  "defaultValue": "44px"
+                },
+                "height": {
+                  "defaultValue": "44px"
+                },
+                "overflow": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
+                "marginTop": {},
+                "marginBottom": {},
+                "marginInlineStart": {},
+                "marginInlineEnd": {},
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "inlineBlock"
+                    ]
+                  }
+                },
+                "font": {
+                  "defaultValue": "22px/1 'Helvetica Neue',Helvetica,Arial,sans-serif"
+                },
+                "lineHeight": {
+                  "defaultValue": "1"
+                },
+                "letterSpacing": {},
+                "textDecorationLine": {},
+                "textTransform": {},
+                "textAlign": {},
+                "textShadow": {},
+                "color": {
+                  "defaultValue": "#172126"
+                }
+              },
+              "states": {
+                "hover": {
+                  "displayName": "Hover",
+                  "className": "auction-products-close-button--hover",
+                  "pseudoClass": "hover"
+                },
+                "disabled": {
+                  "displayName": "Disabled",
+                  "className": "auction-products-close-button--disabled",
+                  "pseudoClass": "disabled"
+                }
+              }
+            }
+          },
+          "auctionProductsFieldLabel": {
+            "elementType": "inlineElement",
+            "inlineElement": {
+              "selector": ".auction-products-field-label",
+              "displayName": "Field Label",
+              "behaviors": {
+                "removable": true,
+                "selectable": false
+              },
+              "cssProperties": {
+                "font": {
+                  "defaultValue": "700 14px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+                },
+                "lineHeight": {},
+                "letterSpacing": {},
+                "textDecorationLine": {},
+                "textTransform": {},
+                "textAlign": {},
+                "textShadow": {},
+                "color": {
+                  "defaultValue": "#374151"
+                },
+                "marginInlineStart": {},
+                "marginInlineEnd": {},
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "inline"
                     ]
                   }
                 }
@@ -1524,7 +1829,9 @@ export const editorElement = {
                 },
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
@@ -1549,15 +1856,55 @@ export const editorElement = {
                   "className": "auction-products-dialog-input--focus",
                   "pseudoClass": "focus"
                 },
-                "disabled": {
-                  "displayName": "Disabled",
-                  "className": "auction-products-dialog-input--disabled",
-                  "pseudoClass": "disabled"
-                },
                 "invalid": {
                   "displayName": "Invalid",
                   "className": "auction-products-dialog-input--invalid",
                   "pseudoClass": "invalid"
+                }
+              }
+            }
+          },
+          "auctionProductsHelperText": {
+            "elementType": "inlineElement",
+            "inlineElement": {
+              "selector": ".auction-products-helper-text",
+              "displayName": "Helper Text",
+              "behaviors": {
+                "removable": true,
+                "selectable": false
+              },
+              "cssProperties": {
+                "font": {
+                  "defaultValue": "14px 'Helvetica Neue',Helvetica,Arial,sans-serif"
+                },
+                "lineHeight": {},
+                "letterSpacing": {},
+                "textDecorationLine": {},
+                "textTransform": {},
+                "textAlign": {},
+                "textShadow": {},
+                "color": {
+                  "defaultValue": "#4b5563"
+                },
+                "marginTop": {
+                  "defaultValue": "0"
+                },
+                "marginBottom": {
+                  "defaultValue": "0"
+                },
+                "marginInlineStart": {
+                  "defaultValue": "0"
+                },
+                "marginInlineEnd": {
+                  "defaultValue": "0"
+                },
+                "display": {
+                  "display": {
+                    "displayValues": [
+                      "none",
+                      "block"
+                    ]
+                  }
                 }
               }
             }
@@ -1572,9 +1919,6 @@ export const editorElement = {
                 "selectable": false
               },
               "cssProperties": {
-                "color": {
-                  "defaultValue": "#ffffff"
-                },
                 "background": {
                   "defaultValue": "#172126",
                   "statesDefaultValues": {
@@ -1621,7 +1965,9 @@ export const editorElement = {
                 "width": {},
                 "height": {},
                 "overflow": {},
-                "mixBlendMode": {},
+                "mixBlendMode": {
+                  "defaultValue": "normal"
+                },
                 "display": {
                   "display": {
                     "displayValues": [
@@ -1639,13 +1985,15 @@ export const editorElement = {
                 "textTransform": {},
                 "textAlign": {},
                 "textShadow": {},
+                "color": {
+                  "defaultValue": "#ffffff"
+                },
                 "marginTop": {
                   "defaultValue": "8px"
                 },
                 "marginBottom": {},
                 "marginInlineStart": {},
                 "marginInlineEnd": {},
-                "flexDirection": {},
                 "justifyContent": {
                   "defaultValue": "center"
                 },
@@ -1673,7 +2021,7 @@ export const editorElement = {
   },
   "cssProperties": {
     "background": {
-      "defaultValue": "#faf8f5"
+      "defaultValue": "transparent"
     },
     "borderTop": {},
     "borderBottom": {},
@@ -1697,12 +2045,11 @@ export const editorElement = {
     "borderEndEndRadius": {},
     "boxShadow": {},
     "overflow": {},
-    "mixBlendMode": {},
+    "mixBlendMode": {
+      "defaultValue": "normal"
+    },
     "gap": {
       "defaultValue": "24px"
-    },
-    "flexDirection": {
-      "defaultValue": "column"
     },
     "justifyContent": {},
     "alignItems": {}

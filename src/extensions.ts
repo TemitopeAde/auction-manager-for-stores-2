@@ -7,5 +7,11 @@ import auctionTools from './extensions/backend/app-tools/auction-tools/auction-t
 
 import auctionToolsImpl from './extensions/backend/service-plugins/auction-tools-impl/auction-tools-impl.extension.ts';
 
+import auctionProductsWidget from './extensions/site/widgets/auction-products/auction-products.extension.ts';
+
 export default app()
-  .use(myPage).use(auctionProducts).use(auctionTools).use(auctionToolsImpl);
+  .use(myPage)
+  .use(auctionProducts)
+  .use(auctionTools)
+  .use(auctionToolsImpl)
+  .use(auctionProductsWidget);

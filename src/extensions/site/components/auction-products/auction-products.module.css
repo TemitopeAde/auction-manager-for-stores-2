@@ -5,7 +5,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 24px;
-  background: #faf8f5;
+  background: transparent;
   color: #172126;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -165,13 +165,18 @@
 }
 
 .emptyTitle {
+  box-sizing: border-box;
   margin: 0 0 4px;
+  color: #172126;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 18px;
   font-weight: 700;
 }
 
 .emptyCopy {
+  box-sizing: border-box;
   margin: 0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #4b5563;
   font-size: 15px;
 }
@@ -222,8 +227,136 @@
   scroll-snap-align: start;
 }
 
+@keyframes skeletonShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  50%, 100% {
+    transform: translateX(100%);
+  }
+}
+
 .placeholder {
   pointer-events: none;
+  user-select: none;
+  border-color: #eee9e0;
+  box-shadow: 0 4px 16px rgba(65, 50, 34, 0.04);
+}
+
+.skeletonShimmer {
+  position: absolute;
+  inset: 0;
+  background: #ede7df;
+  overflow: hidden;
+}
+
+.skeletonShimmer::after,
+.skeletonBadge::after,
+.skeletonLine::after,
+.skeletonButton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeletonShimmer 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(-100%);
+}
+
+.skeletonBadge {
+  display: block !important;
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 12px;
+  width: 76px;
+  height: 24px;
+  border-radius: 8px;
+  background: #ded7cc !important;
+  color: transparent !important;
+  overflow: hidden;
+}
+
+.skeletonTitle {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.skeletonLine {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: #e6dfd5;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonTitle .skeletonLine:first-child {
+  height: 18px;
+  border-radius: 6px;
+}
+
+.skeletonTitle .skeletonLine:last-child {
+  height: 14px;
+  border-radius: 5px;
+}
+
+.skeletonMetaLabel {
+  display: inline-flex;
+  align-items: center;
+}
+
+.skeletonMetaLabel .skeletonLine {
+  height: 12px;
+  border-radius: 4px;
+  background: #ece5dc;
+}
+
+.skeletonMetaValue {
+  display: inline-flex;
+  align-items: center;
+}
+
+.skeletonMetaValue .skeletonLine {
+  height: 18px;
+  border-radius: 5px;
+  background: #dfd8cd;
+}
+
+.skeletonTiming {
+  display: flex;
+  align-items: center;
+}
+
+.skeletonTiming .skeletonLine {
+  height: 13px;
+  border-radius: 4px;
+  background: #eae3da;
+}
+
+.skeletonButton {
+  position: relative;
+  overflow: hidden;
+  background: #e8e2d9 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  cursor: default;
+}
+
+.skeletonIcon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: #d8d0c4;
 }
 
 .imageFrame {
@@ -359,34 +492,19 @@
   margin-block-start: auto;
 }
 
-.viewButton:global(.auction-products-view-button--hover),
-.viewButton:hover {
-  background: #2f3d46;
-}
-
-.viewButton:global(.auction-products-view-button--disabled),
-.viewButton:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.viewButton {
-  box-sizing: border-box;
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #172126;
-  color: #ffffff;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.card:not(.placeholder),
+.productLink {
   cursor: pointer;
-  pointer-events: auto;
+}
+
+.productLink:hover {
+  text-decoration: underline;
+}
+
+.productLink:focus-visible {
+  outline: 3px solid #8c6b45;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .bidButton:global(.auction-products-bid-button--hover),
@@ -403,12 +521,12 @@
 .bidButton {
   box-sizing: border-box;
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  min-width: 0;
   min-height: 44px;
-  padding: 0;
+  padding: 10px 14px;
   border: none;
   border-radius: 8px;
   background: #8c6b45;
@@ -416,11 +534,12 @@
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
   pointer-events: auto;
 }
 
-.viewButton:focus-visible,
 .bidButton:focus-visible,
 .loadMoreButton:focus-visible,
 .carouselArrow:focus-visible,
@@ -428,16 +547,6 @@
 .closeButton:focus-visible {
   outline: 3px solid #8c6b45;
   outline-offset: 2px;
-}
-
-.bidIcon {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  line-height: 1;
 }
 
 .carouselArrow:global(.auction-products-carousel-arrow--hover),
@@ -540,7 +649,9 @@
 }
 
 .dialogEyebrow {
+  box-sizing: border-box;
   margin: 0 0 4px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #4b5563;
   font-size: 14px;
   overflow-wrap: anywhere;
@@ -564,6 +675,7 @@
   border-radius: 50%;
   background: #f3f4f6;
   color: #172126;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -578,6 +690,8 @@
 }
 
 .fieldLabel {
+  box-sizing: border-box;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #374151;
   font-size: 14px;
   font-weight: 700;
@@ -612,8 +726,24 @@
   outline-offset: 2px;
 }
 
-.dialogHelper {
+.dialogInput[type='number'],
+:global(.auction-products-dialog-input)[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.dialogInput[type='number']::-webkit-inner-spin-button,
+.dialogInput[type='number']::-webkit-outer-spin-button,
+:global(.auction-products-dialog-input)[type='number']::-webkit-inner-spin-button,
+:global(.auction-products-dialog-input)[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
   margin: 0;
+}
+
+.dialogHelper {
+  box-sizing: border-box;
+  margin: 0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #4b5563;
   font-size: 14px;
 }

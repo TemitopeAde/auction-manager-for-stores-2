@@ -15,6 +15,7 @@ export const elevatedItems = {
   insert: auth.elevate(items.insert),
   update: auth.elevate(items.update),
   remove: auth.elevate(items.remove),
+  bulkRemove: auth.elevate(items.bulkRemove),
 };
 
 const WIX_DATA_PAGE_SIZE = 1000;

@@ -43,6 +43,7 @@ export const queryStoreProducts = bindMethod('queryStoreProducts');
 export const getStoreProductsByIds = bindMethod('getStoreProductsByIds');
 export const createAuctionFromProduct = bindMethod('createAuctionFromProduct');
 export const deleteAuction = bindMethod('deleteAuction');
+export const deleteAuctions = bindMethod('deleteAuctions');
 export const deleteBid = bindMethod('deleteBid');
 export const updateAuction = bindMethod('updateAuction');
 export const runAuctionAction = bindMethod('runAuctionAction');
@@ -115,7 +116,7 @@ export function readDashboardPageContext(): DashboardPageContextInput | null {
     productName: productName || undefined,
     returnToStores,
     tab:
-      tabParam === 'monitor' || tabParam === 'setup' || tabParam === 'auctions'
+      tabParam === 'overview' || tabParam === 'monitor' || tabParam === 'auctions'
         ? tabParam
         : undefined,
   };

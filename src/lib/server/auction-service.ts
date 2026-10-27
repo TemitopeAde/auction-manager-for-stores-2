@@ -89,6 +89,7 @@ import {
 import {
   createAuctionRecord,
   deleteAuctionRecord,
+  deleteAuctionRecords,
   findAuctionsByProductIds,
   getAuctionRecordById,
   listAuctionRecords,
@@ -99,6 +100,7 @@ import {
   listAllBids,
   deleteBidRecord,
   deleteBidsByAuctionId,
+  deleteBidsByAuctionIds,
   getBidRecordById,
   listBidsByAuctionId,
   insertBidRecord,
@@ -407,6 +409,33 @@ function toStoreProductSnapshot(product: any): StoreProductSnapshot {
     description: getStoreProductDescription(product),
     imageUrls: getStoreProductImageUrls(product),
   };
+}
+
+// Loads the products for one page of auctions. A product that fails to load is
+// left out so the table still renders.
+async function getStoreProductSnapshotsByIds(
+  productIds: string[],
+): Promise<Map<string, StoreProductSnapshot>> {
+  const snapshots = new Map<string, StoreProductSnapshot>();
+  if (productIds.length === 0) return snapshots;
+
+  const { catalogVersion } = await catalogVersioning.getCatalogVersion();
+  if (catalogVersion === 'STORES_NOT_INSTALLED') return snapshots;
+
+  await Promise.all(
+    productIds.map(async (productId) => {
+      try {
+        const product = catalogVersion === 'V3_CATALOG'
+          ? await productsV3.getProduct(productId)
+          : await products.getProduct(productId);
+        snapshots.set(productId, toStoreProductSnapshot(product));
+      } catch (error) {
+        console.warn('[auction] failed to load linked product', { productId, error });
+      }
+    }),
+  );
+
+  return snapshots;
 }
 
 async function getStoreProductSnapshot(productId: string): Promise<StoreProductSnapshot> {
@@ -718,11 +747,7 @@ function sanitizeAuctionInput(input: AuctionInput, settings: AppSettings): Aucti
     new Set((input.productIds || []).map((productId) => productId.trim()).filter(Boolean)),
   );
 
-  if (!title) {
-    throw new Error('Auction title is required.');
-  }
-
-  // Description is now optional as it can be synced from product
+  // Title and description are optional; an empty title falls back to the product name.
 
   if (productIds.length !== 1) {
     throw new Error('Select exactly one product for this auction.');
@@ -1004,7 +1029,8 @@ function getStringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function resolvePublicProductImageUrl(product: any): string | null {
+function resolvePublicProductImageUrl(raw: any): string | null {
+  const product = raw?.product ?? raw;
   const mainMedia = product?.media?.mainMedia ?? product?.media?.main;
   const image = mainMedia?.image;
 
@@ -1021,7 +1047,8 @@ function resolvePublicProductImageUrl(product: any): string | null {
   );
 }
 
-function resolvePublicProductSlug(product: any): string {
+function resolvePublicProductSlug(raw: any): string {
+  const product = raw?.product ?? raw;
   const fromSlug = getStringValue(product?.slug);
   if (fromSlug) {
     return fromSlug.replace(/^\/+|\/+$/g, '');
@@ -1040,9 +1067,10 @@ function resolvePublicProductSlug(product: any): string {
   return lastSegment ? decodeURIComponent(lastSegment) : '';
 }
 
-function normalizePublicProduct(product: any): PublicAuctionProduct {
+function normalizePublicProduct(raw: any): PublicAuctionProduct {
+  const product = raw?.product ?? raw;
   const id = String(product?._id ?? product?.id ?? '');
-  const price = product?.price;
+  const price = product?.price ?? product?.priceData;
 
   return {
     id,
@@ -1235,14 +1263,75 @@ function productMatchesPublicFilters(
   return matchesPublicTimerFilter(product.auction, timerFilter, now);
 }
 
+async function fetchStoreProductByIdForPublic(
+  id: string,
+  catalogVersion: string,
+): Promise<any> {
+  if (catalogVersion === 'V3_CATALOG') {
+    const api = productsV3 as any;
+    if (typeof api.getProduct === 'function') {
+      try {
+        const elevated = auth.elevate(api.getProduct.bind(api));
+        const res = await elevated(id);
+        const unwrapped = (res as any)?.product ?? res;
+        if (unwrapped) return unwrapped;
+      } catch (err) {
+        console.warn('[auction] productsV3.getProduct failed, trying query:', err);
+      }
+    }
+    try {
+      const elevatedQuery = auth.elevate(productsV3.queryProducts);
+      const res = await elevatedQuery({ filter: { _id: { $in: [id] } } });
+      const item = (res as any)?.products?.[0] ?? (res as any)?.items?.[0];
+      const unwrapped = (item as any)?.product ?? item;
+      if (unwrapped) return unwrapped;
+    } catch (err) {
+      console.warn('[auction] productsV3.queryProducts by ID failed:', err);
+    }
+    return null;
+  }
+
+  // V1 Catalog
+  try {
+    const elevated = auth.elevate(products.getProduct);
+    const res = await elevated(id);
+    const unwrapped = (res as any)?.product ?? res;
+    if (unwrapped) return unwrapped;
+  } catch (err) {
+    console.warn('[auction] products.getProduct failed, trying queryProducts:', err);
+    try {
+      const elevatedQuery = auth.elevate(products.queryProducts);
+      const res = await elevatedQuery().eq('_id', id).limit(1).find();
+      const item = res.items?.[0];
+      const unwrapped = (item as any)?.product ?? item;
+      if (unwrapped) return unwrapped;
+    } catch (queryErr) {
+      console.warn('[auction] products.queryProducts fallback failed:', queryErr);
+    }
+  }
+  return null;
+}
+
 async function getStoreProductsByIdsForPublic(ids: string[]): Promise<PublicAuctionProduct[]> {
   if (ids.length === 0) {
     return [];
   }
 
+  let catalogVersion = 'V1_CATALOG';
+  try {
+    const versionRes = await auth.elevate(catalogVersioning.getCatalogVersion)();
+    catalogVersion = versionRes?.catalogVersion ?? 'V1_CATALOG';
+  } catch (e) {
+    console.warn('[auction] failed to get catalog version:', e);
+  }
+
+  if (catalogVersion === 'STORES_NOT_INSTALLED') {
+    return [];
+  }
+
   const productsById = await Promise.all(
     ids.map((id) =>
-      products.getProduct(id).catch((error) => {
+      fetchStoreProductByIdForPublic(id, catalogVersion).catch((error) => {
         console.warn('[auction] failed to load public auction product', { id, error });
         return null;
       }),
@@ -1299,9 +1388,15 @@ async function findPublicStoreProductPage(
       new Set(
         auctions
           .flatMap((auction) => auction.productIds)
-          .filter((productId) =>
-            auctionFilter === 'inactive' ? !activeProductIds.has(productId) : true,
-          ),
+          .filter((productId) => {
+            if (auctionFilter === 'active') {
+              return activeProductIds.has(productId);
+            }
+            if (auctionFilter === 'inactive') {
+              return !activeProductIds.has(productId);
+            }
+            return true;
+          }),
       ),
     );
 
@@ -1318,7 +1413,26 @@ async function findPublicStoreProductPage(
     };
   }
 
-  let result = await products.queryProducts().limit(100).find();
+  let catalogVersion = 'V1_CATALOG';
+  try {
+    const versionRes = await auth.elevate(catalogVersioning.getCatalogVersion)();
+    catalogVersion = versionRes?.catalogVersion ?? 'V1_CATALOG';
+  } catch (e) {
+    console.warn('[auction] failed to get catalog version:', e);
+  }
+
+  if (catalogVersion === 'STORES_NOT_INSTALLED') {
+    return {
+      products: [],
+      cursor: input.cursor ?? null,
+      nextCursor: null,
+      hasNextPage: false,
+    };
+  }
+
+  let result = catalogVersion === 'V3_CATALOG'
+    ? await auth.elevate(productsV3.queryProducts)().limit(100).find()
+    : await auth.elevate(products.queryProducts)().limit(100).find();
 
   while (true) {
     for (const rawProduct of result.items ?? []) {
@@ -1712,7 +1826,31 @@ export const searchDashboardAuctions = webMethod(
       }),
     );
 
-    return paged;
+    if (!input.includeLinkedProducts) {
+      return paged;
+    }
+
+    let productsById = new Map<string, StoreProductSnapshot>();
+    try {
+      productsById = await getStoreProductSnapshotsByIds(
+        Array.from(new Set(paged.rows.flatMap((auction) => auction.productIds.slice(0, 1)))),
+      );
+    } catch (error) {
+      console.warn('[auction] failed to load linked products for auctions page', error);
+    }
+
+    return {
+      total: paged.total,
+      rows: paged.rows.map((auction) => {
+        const product = productsById.get(auction.productIds[0]);
+        return {
+          ...auction,
+          linkedProduct: product
+            ? { id: product.id, name: product.name, imageUrl: product.imageUrls[0] ?? null }
+            : null,
+        };
+      }),
+    };
   },
 );
 
@@ -1963,8 +2101,9 @@ async function createAuctionWithValidation(
 ): Promise<DashboardPayload> {
   const settings = await readSettings();
   const sanitized = sanitizeAuctionInput(input, settings);
-  if (verifiedProductId !== sanitized.productIds[0]) {
-    await getStoreProductSnapshot(sanitized.productIds[0]);
+  if (verifiedProductId !== sanitized.productIds[0] || !sanitized.title) {
+    const product = await getStoreProductSnapshot(sanitized.productIds[0]);
+    sanitized.title = sanitized.title || product.name;
   }
   const existingAuctions = await listAuctionRecords();
   assertAuctionFitsPlan(settings, existingAuctions, sanitized.lifecycle);
@@ -2021,8 +2160,9 @@ export const updateAuction = webMethod(
       },
       settings,
     );
-    if (sanitized.productIds[0] !== existing.productIds[0]) {
-      await getStoreProductSnapshot(sanitized.productIds[0]);
+    if (sanitized.productIds[0] !== existing.productIds[0] || !sanitized.title) {
+      const product = await getStoreProductSnapshot(sanitized.productIds[0]);
+      sanitized.title = sanitized.title || product.name;
     }
     const existingAuctions = await listAuctionRecords();
     assertAuctionFitsPlan(
@@ -2291,7 +2431,23 @@ export const resendWinnerPaymentEmail = webMethod(
 export const deleteAuction = webMethod(
   Permissions.Admin,
   async (auctionId: string): Promise<DashboardPayload> => {
+    await deleteBidsByAuctionId(auctionId);
     await deleteAuctionRecord(auctionId);
+    return buildDashboardPayload();
+  },
+);
+
+export const deleteAuctions = webMethod(
+  Permissions.Admin,
+  async (auctionIds: string[]): Promise<DashboardPayload> => {
+    if (!Array.isArray(auctionIds) || auctionIds.length === 0) {
+      return buildDashboardPayload();
+    }
+    const cleanIds = auctionIds.filter((id) => typeof id === 'string' && id.trim().length > 0);
+    if (cleanIds.length > 0) {
+      await deleteBidsByAuctionIds(cleanIds);
+      await deleteAuctionRecords(cleanIds);
+    }
     return buildDashboardPayload();
   },
 );

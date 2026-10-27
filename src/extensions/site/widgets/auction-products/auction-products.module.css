@@ -1,0 +1,8 @@
+.root {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-height: 320px;
+  background: transparent;
+}
+

@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bidDepositPercentage: 10,
   blockCartAndCheckout: true,
   blockAllCartAndCheckout: false,
-  combinedWinnerCheckoutEnabled: false,
+  combinedWinnerCheckoutEnabled: true,
 };
 
 const now = new Date('2026-04-19T12:00:00.000Z');

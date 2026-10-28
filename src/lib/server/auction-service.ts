@@ -656,7 +656,59 @@ async function createWinnerCheckout(
   auction: AuctionRecord,
   winningBid: BidSummary,
 ): Promise<{ checkoutId: string; checkoutUrl: string }> {
-  return createCheckoutForWinnerEntries([{ auction, winningBid }], winningBid.bidderEmail);
+  const created = await createCheckoutForWinnerEntries(
+    [{ auction, winningBid }],
+    winningBid.bidderEmail,
+  );
+  await releaseSupersededCheckouts([auction], created.checkoutId);
+  return created;
+}
+
+/**
+ * Checkout links can't be deleted, so before an auction moves to a new
+ * checkout, its item is removed from the one it replaces. An emptied checkout
+ * can't be paid, which stops the same item being paid for twice. Failures are
+ * logged, not thrown: the order events still flag a duplicate payment.
+ */
+async function releaseSupersededCheckouts(
+  auctions: AuctionRecord[],
+  newCheckoutId: string,
+): Promise<void> {
+  const productIdsByCheckoutId = new Map<string, Set<string>>();
+
+  for (const auction of auctions) {
+    const oldCheckoutId = auction.winnerCheckoutId;
+    if (!oldCheckoutId || oldCheckoutId === newCheckoutId || auction.winnerOrderId) {
+      continue;
+    }
+    const productIds = productIdsByCheckoutId.get(oldCheckoutId) ?? new Set<string>();
+    auction.productIds.forEach((productId) => productIds.add(productId));
+    productIdsByCheckoutId.set(oldCheckoutId, productIds);
+  }
+
+  for (const [oldCheckoutId, productIds] of productIdsByCheckoutId) {
+    try {
+      const oldCheckout = await auth.elevate(checkout.getCheckout)(oldCheckoutId);
+      if (oldCheckout.completed) {
+        continue;
+      }
+      const lineItemIds = (oldCheckout.lineItems ?? [])
+        .filter(
+          (lineItem) =>
+            lineItem.catalogReference?.appId === WIX_STORES_APP_ID &&
+            productIds.has(lineItem.catalogReference.catalogItemId ?? ''),
+        )
+        .flatMap((lineItem) => (lineItem._id ? [lineItem._id] : []));
+      if (lineItemIds.length > 0) {
+        await auth.elevate(checkout.removeLineItems)(oldCheckoutId, lineItemIds);
+      }
+    } catch (error) {
+      console.warn('[auction] failed to empty superseded winner checkout', {
+        checkoutId: oldCheckoutId,
+        error,
+      });
+    }
+  }
 }
 
 async function createCheckoutForWinnerEntries(
@@ -2832,6 +2884,10 @@ export async function createMemberCombinedCheckout(
 
   const buyerEmail = normalizeEmail(member.email) || first.winningBid.bidderEmail;
   const { checkoutId, checkoutUrl } = await createCheckoutForWinnerEntries(entries, buyerEmail);
+  await releaseSupersededCheckouts(
+    entries.map(({ auction }) => auction),
+    checkoutId,
+  );
 
   await patchAuctionRecords(
     entries.map(({ auction, winningBid }) => ({
@@ -2849,17 +2905,54 @@ export async function createMemberCombinedCheckout(
   return { checkoutUrl };
 }
 
-/**
- * Links auctions to the eCom order placed from their winner checkout. Called
- * from the order events; safe to run more than once for the same order.
- */
-export async function recordWinnerOrder(order: {
+type WinnerOrderEventOrder = {
   _id?: string | null;
   number?: string | null;
   checkoutId?: string | null;
   paymentStatus?: string | null;
   buyerInfo?: { email?: string | null } | null;
-}): Promise<void> {
+  lineItems?: Array<{
+    catalogReference?: { appId?: string | null; catalogItemId?: string | null } | null;
+  }> | null;
+};
+
+/**
+ * Sold auctions this buyer won whose product is in the order. Used when the
+ * order's checkout is no longer the one stored on the auction, i.e. it was
+ * paid through an older winner checkout link.
+ */
+async function findAuctionsForSupersededCheckoutOrder(
+  order: WinnerOrderEventOrder,
+): Promise<AuctionRecord[]> {
+  const buyerEmail = normalizeEmail(order.buyerInfo?.email);
+  const productIds = new Set(
+    (order.lineItems ?? [])
+      .filter((lineItem) => lineItem.catalogReference?.appId === WIX_STORES_APP_ID)
+      .flatMap((lineItem) => lineItem.catalogReference?.catalogItemId ?? []),
+  );
+
+  if (!buyerEmail || productIds.size === 0) {
+    return [];
+  }
+
+  return (await listAuctionRecords()).filter(
+    (auction) =>
+      auction.lifecycle === 'sold' &&
+      auction.winnerCheckoutRecipientEmail === buyerEmail &&
+      productIds.has(auction.productIds[0] ?? ''),
+  );
+}
+
+/**
+ * Links auctions to the eCom order placed from their winner checkout and flags
+ * an item that was already paid in another order. Called from the order
+ * events; safe to run more than once for the same order. Notifications are
+ * only sent for the approved event so each order raises them once.
+ */
+export async function recordWinnerOrder(
+  order: WinnerOrderEventOrder,
+  source: 'approved' | 'paymentStatus',
+): Promise<void> {
   const checkoutId = order.checkoutId?.trim();
   const orderId = order._id?.trim();
 
@@ -2867,15 +2960,26 @@ export async function recordWinnerOrder(order: {
     return;
   }
 
-  // One query and one bulk write, so large orders stay within the event
-  // handler's sub-request limit.
-  const auctions = await findAuctionsByWinnerCheckoutId(checkoutId);
+  // Keep requests few: the event handler is limited to 20 sub-requests.
+  let auctions = await findAuctionsByWinnerCheckoutId(checkoutId);
+  const viaSupersededCheckout = auctions.length === 0;
+  if (viaSupersededCheckout) {
+    auctions = await findAuctionsForSupersededCheckoutOrder(order);
+  }
+
   const isPaid = order.paymentStatus === 'PAID';
   const paidAt = new Date().toISOString();
+  const duplicates = auctions.filter(
+    (auction) => auction.winnerOrderId && auction.winnerOrderId !== orderId,
+  );
   let newlyOrdered = 0;
   const patches: Array<{ existing: AuctionRecord; patch: Partial<AuctionRecord> }> = [];
 
   for (const auction of auctions) {
+    if (duplicates.includes(auction)) {
+      continue;
+    }
+
     const patch: Partial<AuctionRecord> = {};
 
     if (!auction.winnerOrderId) {
@@ -2895,17 +2999,38 @@ export async function recordWinnerOrder(order: {
 
   await patchAuctionRecords(patches);
 
-  if (newlyOrdered > 0) {
-    try {
+  if (source !== 'approved') {
+    return;
+  }
+
+  const orderLabel = `Order #${order.number ?? orderId}`;
+  const buyerLabel = order.buyerInfo?.email ?? 'the winner';
+
+  try {
+    if (newlyOrdered > 0) {
       await insertNotification(
         auctions[0].id,
         'owner',
         'dashboard',
-        `Order #${order.number ?? orderId} placed by ${order.buyerInfo?.email ?? 'the winner'} for ${newlyOrdered} auction item(s).`,
+        viaSupersededCheckout
+          ? `${orderLabel} placed by ${buyerLabel} for ${newlyOrdered} auction item(s) through an older checkout link.`
+          : `${orderLabel} placed by ${buyerLabel} for ${newlyOrdered} auction item(s).`,
       );
-    } catch (error) {
-      console.error('[auction] winner order notification failed:', error);
     }
+
+    if (duplicates.length > 0) {
+      const items = duplicates
+        .map((auction) => `"${auction.title}" (already in order ${auction.winnerOrderId})`)
+        .join(', ');
+      await insertNotification(
+        duplicates[0].id,
+        'owner',
+        'dashboard',
+        `Possible duplicate payment: ${orderLabel} from ${buyerLabel} includes ${items}. Check Wix Orders and refund the duplicate.`,
+      );
+    }
+  } catch (error) {
+    console.error('[auction] winner order notification failed:', error);
   }
 }
 

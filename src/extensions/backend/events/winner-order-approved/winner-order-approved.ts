@@ -7,7 +7,7 @@ export default orders.onOrderApproved(async (event) => {
   try {
     const order = event.data?.order;
     if (order) {
-      await recordWinnerOrder(order);
+      await recordWinnerOrder(order, 'approved');
     }
   } catch (error) {
     console.error('[auction] order approved handler failed:', error);

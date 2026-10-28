@@ -6,7 +6,7 @@ export default orders.onOrderPaymentStatusUpdated(async (event) => {
   try {
     const order = event.data?.order;
     if (order) {
-      await recordWinnerOrder(order);
+      await recordWinnerOrder(order, 'paymentStatus');
     }
   } catch (error) {
     console.error('[auction] order payment status handler failed:', error);

@@ -68,6 +68,7 @@ import type {
   StoreProductSearchResult,
   MemberAuctionBidsQuery,
   MemberBidSummary,
+  MemberWonItemsResult,
   PublicAuctionProduct,
   PublicAuctionProductFilter,
   PublicAuctionProductQuery,
@@ -94,6 +95,8 @@ import {
   getAuctionRecordById,
   listAuctionRecords,
   patchAuctionRecord,
+  patchAuctionRecords,
+  findAuctionsByWinnerCheckoutId,
   updateAuctionRecord,
 } from './auction-repository';
 import {
@@ -617,11 +620,18 @@ async function sendNewBidWixNotification(bid: BidRecord): Promise<void> {
   }
 }
 
-async function createWinnerCheckout(
-  auction: AuctionRecord,
-  winningBid: BidSummary,
-): Promise<{ checkoutId: string; checkoutUrl: string }> {
-  if (auction.productIds.length === 0) {
+type WinnerCheckoutEntry = {
+  auction: AuctionRecord;
+  winningBid: BidSummary;
+};
+
+// The Stores product keeps supplying weight, shipping and inventory; only the
+// price is overridden so the winner pays their winning bid, not the list price.
+// Overriding catalog fields requires the "Manage eCommerce - Admin Permissions" scope.
+function toWinnerCheckoutLineItem({ auction, winningBid }: WinnerCheckoutEntry) {
+  const productId = auction.productIds[0];
+
+  if (!productId) {
     throw new Error('This auction has no linked product to generate checkout for.');
   }
 
@@ -629,20 +639,36 @@ async function createWinnerCheckout(
     winningBid.variantId,
     winningBid.variantChoices,
   );
+  const price = String(winningBid.amount);
 
-  const createdCheckout = await checkout.createCheckout({
+  return {
+    catalogReference: {
+      appId: WIX_STORES_APP_ID,
+      catalogItemId: productId,
+      ...(options ? { options } : {}),
+    },
+    quantity: 1,
+    catalogOverrideFields: { price, fullPrice: price },
+  };
+}
+
+async function createWinnerCheckout(
+  auction: AuctionRecord,
+  winningBid: BidSummary,
+): Promise<{ checkoutId: string; checkoutUrl: string }> {
+  return createCheckoutForWinnerEntries([{ auction, winningBid }], winningBid.bidderEmail);
+}
+
+async function createCheckoutForWinnerEntries(
+  entries: WinnerCheckoutEntry[],
+  buyerEmail: string,
+): Promise<{ checkoutId: string; checkoutUrl: string }> {
+  const createdCheckout = await auth.elevate(checkout.createCheckout)({
     channelType: 'WEB',
-    lineItems: auction.productIds.map((productId, index) => ({
-      catalogReference: {
-        appId: WIX_STORES_APP_ID,
-        catalogItemId: productId,
-        ...(index === 0 && options ? { options } : {}),
-      },
-      quantity: 1,
-    })),
+    lineItems: entries.map(toWinnerCheckoutLineItem),
     checkoutInfo: {
       buyerInfo: {
-        email: winningBid.bidderEmail,
+        email: buyerEmail,
       },
     },
   });
@@ -653,7 +679,7 @@ async function createWinnerCheckout(
     throw new Error('Checkout was created but no checkout ID was returned.');
   }
 
-  const { checkoutUrl } = await checkout.getCheckoutUrl(checkoutId);
+  const { checkoutUrl } = await auth.elevate(checkout.getCheckoutUrl)(checkoutId);
 
   if (!checkoutUrl) {
     throw new Error('Checkout was created but no checkout URL was returned.');
@@ -1543,6 +1569,8 @@ async function buildPublicAuctions(): Promise<AuctionView[]> {
       winnerPaymentEmailSentAt: null,
       winnerPaymentEmailAttemptKey: null,
       winnerPaymentEmailLastSentKey: null,
+      winnerOrderId: null,
+      winnerPaidAt: null,
     }));
 }
 
@@ -2418,6 +2446,8 @@ export const runAuctionAction = webMethod(
         winnerPaymentEmailSentAt: null,
         winnerPaymentEmailAttemptKey: null,
         winnerPaymentEmailLastSentKey: null,
+        winnerOrderId: null,
+        winnerPaidAt: null,
         pausedAt: null,
         pausedStartDelayMs: null,
         pausedTimeRemainingMs: null,
@@ -2545,6 +2575,8 @@ export const deleteBid = webMethod(
         winnerPaymentEmailSentAt: null,
         winnerPaymentEmailAttemptKey: null,
         winnerPaymentEmailLastSentKey: null,
+        winnerOrderId: null,
+        winnerPaidAt: null,
         paymentMade: false,
         lifecycle: auction.lifecycle === 'sold' ? 'closed' : auction.lifecycle,
       });
@@ -2593,6 +2625,7 @@ export const getPublicAuctionSettings = webMethod(
       winnerCheckoutEmailEnabled:
         planAllows(settings.planTier, 'winnerCheckoutEmail') &&
         settings.winnerCheckoutEmailEnabled,
+      combinedWinnerCheckoutEnabled: settings.combinedWinnerCheckoutEnabled,
       planTier: settings.planTier,
       planName,
     };
@@ -2672,6 +2705,209 @@ export const triggerWinnerCheckout = webMethod(
     return { checkoutUrl };
   },
 );
+
+type MemberIdentity = { memberId: string; email: string };
+
+type MemberWonEntries = {
+  entries: WinnerCheckoutEntry[];
+  stillLeadingCount: number;
+};
+
+/**
+ * Ended auctions the member won and has not ordered yet, plus how many live
+ * auctions they are still leading. Recomputed from the records on every call,
+ * so the client never decides what goes into the checkout.
+ */
+async function resolveMemberWonEntries(member: MemberIdentity): Promise<MemberWonEntries> {
+  const [auctions, allBids] = await Promise.all([listAuctionRecords(), listAllBids()]);
+  const bidsByAuctionId = new Map<string, BidRecord[]>();
+
+  for (const bid of allBids) {
+    const auctionBids = bidsByAuctionId.get(bid.auctionId) ?? [];
+    auctionBids.push(bid);
+    bidsByAuctionId.set(bid.auctionId, auctionBids);
+  }
+
+  const now = Date.now();
+  const entries: WinnerCheckoutEntry[] = [];
+  let stillLeadingCount = 0;
+
+  for (const auction of auctions) {
+    const bids = bidsByAuctionId.get(auction.id) ?? [];
+    const topBid = sortBidsDescending(bids)[0];
+
+    if (!topBid) {
+      continue;
+    }
+
+    const status = getAuctionStatus(auction, bids, now);
+
+    if (['live', 'endingSoon', 'paused'].includes(status)) {
+      if (bidderMatchesIdentity(topBid, member.memberId, member.email)) {
+        stillLeadingCount += 1;
+      }
+      continue;
+    }
+
+    if (
+      !['closed', 'sold'].includes(status) ||
+      auction.paymentMade ||
+      auction.winnerOrderId ||
+      auction.winnerPaymentUrl ||
+      auction.productIds.length === 0
+    ) {
+      continue;
+    }
+
+    const winningBid = auction.winnerBidId
+      ? bids.find((bid) => bid.id === auction.winnerBidId)
+      : topBid;
+
+    if (winningBid && bidderMatchesIdentity(winningBid, member.memberId, member.email)) {
+      entries.push({ auction, winningBid: toBidSummary(winningBid) });
+    }
+  }
+
+  entries.sort((left, right) => left.auction.endTime.localeCompare(right.auction.endTime));
+
+  return { entries, stillLeadingCount };
+}
+
+export async function listMemberWonItems(member: MemberIdentity): Promise<MemberWonItemsResult> {
+  const settings = await readSettings();
+
+  if (!settings.combinedWinnerCheckoutEnabled) {
+    return { items: [], total: 0, stillLeadingCount: 0 };
+  }
+
+  const { entries, stillLeadingCount } = await resolveMemberWonEntries(member);
+  const items = entries.map(({ auction, winningBid }) => ({
+    auctionId: auction.id,
+    title: auction.title,
+    productId: auction.productIds[0],
+    imageUrl: auction.imageUrls[0] ?? null,
+    amount: winningBid.amount,
+    variantLabel: winningBid.variantLabel ?? null,
+  }));
+
+  return {
+    items,
+    total: items.reduce((sum, item) => sum + item.amount, 0),
+    stillLeadingCount,
+  };
+}
+
+export async function createMemberCombinedCheckout(
+  member: MemberIdentity,
+): Promise<{ checkoutUrl: string }> {
+  const settings = await readSettings();
+
+  if (!settings.combinedWinnerCheckoutEnabled) {
+    throw new Error('Combined checkout is not enabled.');
+  }
+
+  const { entries } = await resolveMemberWonEntries(member);
+
+  if (entries.length === 0) {
+    throw new Error('You have no won items waiting for payment.');
+  }
+
+  // Reuse the open checkout when it already holds exactly these items.
+  const [first] = entries;
+  const existingCheckoutId = first.auction.winnerCheckoutId;
+  const existingCheckoutUrl = first.auction.winnerCheckoutUrl;
+  const canReuse =
+    Boolean(existingCheckoutId && existingCheckoutUrl) &&
+    entries.every(
+      ({ auction, winningBid }) =>
+        auction.winnerCheckoutId === existingCheckoutId &&
+        auction.winnerBidId === winningBid.id,
+    ) &&
+    (await findAuctionsByWinnerCheckoutId(existingCheckoutId as string)).length ===
+      entries.length;
+
+  if (canReuse && existingCheckoutUrl) {
+    return { checkoutUrl: existingCheckoutUrl };
+  }
+
+  const buyerEmail = normalizeEmail(member.email) || first.winningBid.bidderEmail;
+  const { checkoutId, checkoutUrl } = await createCheckoutForWinnerEntries(entries, buyerEmail);
+
+  await patchAuctionRecords(
+    entries.map(({ auction, winningBid }) => ({
+      existing: auction,
+      patch: {
+        winnerBidId: winningBid.id,
+        lifecycle: 'sold',
+        winnerCheckoutId: checkoutId,
+        winnerCheckoutUrl: checkoutUrl,
+        winnerCheckoutRecipientEmail: normalizeEmail(winningBid.bidderEmail),
+      },
+    })),
+  );
+
+  return { checkoutUrl };
+}
+
+/**
+ * Links auctions to the eCom order placed from their winner checkout. Called
+ * from the order events; safe to run more than once for the same order.
+ */
+export async function recordWinnerOrder(order: {
+  _id?: string | null;
+  number?: string | null;
+  checkoutId?: string | null;
+  paymentStatus?: string | null;
+  buyerInfo?: { email?: string | null } | null;
+}): Promise<void> {
+  const checkoutId = order.checkoutId?.trim();
+  const orderId = order._id?.trim();
+
+  if (!checkoutId || !orderId) {
+    return;
+  }
+
+  // One query and one bulk write, so large orders stay within the event
+  // handler's sub-request limit.
+  const auctions = await findAuctionsByWinnerCheckoutId(checkoutId);
+  const isPaid = order.paymentStatus === 'PAID';
+  const paidAt = new Date().toISOString();
+  let newlyOrdered = 0;
+  const patches: Array<{ existing: AuctionRecord; patch: Partial<AuctionRecord> }> = [];
+
+  for (const auction of auctions) {
+    const patch: Partial<AuctionRecord> = {};
+
+    if (!auction.winnerOrderId) {
+      patch.winnerOrderId = orderId;
+      newlyOrdered += 1;
+    }
+
+    if (isPaid && !auction.paymentMade) {
+      patch.paymentMade = true;
+      patch.winnerPaidAt = paidAt;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      patches.push({ existing: auction, patch });
+    }
+  }
+
+  await patchAuctionRecords(patches);
+
+  if (newlyOrdered > 0) {
+    try {
+      await insertNotification(
+        auctions[0].id,
+        'owner',
+        'dashboard',
+        `Order #${order.number ?? orderId} placed by ${order.buyerInfo?.email ?? 'the winner'} for ${newlyOrdered} auction item(s).`,
+      );
+    } catch (error) {
+      console.error('[auction] winner order notification failed:', error);
+    }
+  }
+}
 
 export const acknowledgeWinnerCheckoutEmail = webMethod(
   Permissions.SiteMember,

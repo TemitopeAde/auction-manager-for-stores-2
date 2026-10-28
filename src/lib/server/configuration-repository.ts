@@ -23,6 +23,7 @@ interface ConfigurationCollectionItem {
   outbidNotificationEnabled?: boolean;
   myBidsPageUrl?: string;
   winnerCheckoutEmailEnabled?: boolean;
+  combinedWinnerCheckoutEnabled?: boolean;
   winnerTriggeredEmailId?: string;
   bidderConfirmationEnabled?: boolean;
   bidDepositEnabled?: boolean;
@@ -106,6 +107,10 @@ function normalizeSettings(item: ConfigurationCollectionItem | null): AppSetting
       typeof item.blockAllCartAndCheckout === 'boolean'
         ? item.blockAllCartAndCheckout
         : DEFAULT_SETTINGS.blockAllCartAndCheckout,
+    combinedWinnerCheckoutEnabled:
+      typeof item.combinedWinnerCheckoutEnabled === 'boolean'
+        ? item.combinedWinnerCheckoutEnabled
+        : DEFAULT_SETTINGS.combinedWinnerCheckoutEnabled,
   };
 }
 
@@ -195,6 +200,7 @@ export async function saveConfigurationSettings(
     bidDepositPercentage: merged.bidDepositPercentage,
     blockCartAndCheckout: merged.blockCartAndCheckout,
     blockAllCartAndCheckout: merged.blockAllCartAndCheckout,
+    combinedWinnerCheckoutEnabled: merged.combinedWinnerCheckoutEnabled,
     updatedAt: new Date(),
   };
 

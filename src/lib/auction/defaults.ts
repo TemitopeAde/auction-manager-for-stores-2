@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bidDepositPercentage: 10,
   blockCartAndCheckout: true,
   blockAllCartAndCheckout: false,
+  combinedWinnerCheckoutEnabled: false,
 };
 
 const now = new Date('2026-04-19T12:00:00.000Z');
@@ -84,6 +85,8 @@ export const SAMPLE_STORE: AuctionStore = {
       winnerPaymentEmailSentAt: null,
       winnerPaymentEmailAttemptKey: null,
       winnerPaymentEmailLastSentKey: null,
+      winnerOrderId: null,
+      winnerPaidAt: null,
       pausedAt: null,
       pausedStartDelayMs: null,
       pausedTimeRemainingMs: null,
@@ -119,6 +122,8 @@ export const SAMPLE_STORE: AuctionStore = {
       winnerPaymentEmailSentAt: null,
       winnerPaymentEmailAttemptKey: null,
       winnerPaymentEmailLastSentKey: null,
+      winnerOrderId: null,
+      winnerPaidAt: null,
       pausedAt: null,
       pausedStartDelayMs: null,
       pausedTimeRemainingMs: null,

@@ -101,3 +101,9 @@ export const acknowledgeWinnerCheckoutEmail = (auctionId: string) =>
 
 export const sendWinnerCheckoutEmail = (auctionId: string) =>
   callSiteMethod('sendWinnerCheckoutEmail', auctionId);
+
+/** The signed-in member's ended, unpaid winning items (combined checkout). */
+export const listMemberWonItems = () => callSiteMethod('listMemberWonItems');
+
+/** One checkout for every won item, each at its winning bid. */
+export const createMemberCombinedCheckout = () => callSiteMethod('createMemberCombinedCheckout');

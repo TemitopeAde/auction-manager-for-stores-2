@@ -272,6 +272,7 @@ export default extensions.appTools({
           myBidsPageUrl: { type: 'string' },
           blockCartAndCheckout: { type: 'boolean', description: 'Block buying auctioned products through the cart.' },
           blockAllCartAndCheckout: { type: 'boolean' },
+          combinedWinnerCheckoutEnabled: { type: 'boolean', description: 'Let signed-in members pay for all their won items in one checkout.' },
         },
       },
       responseSchema: {

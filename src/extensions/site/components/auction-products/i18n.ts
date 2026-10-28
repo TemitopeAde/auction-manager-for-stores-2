@@ -62,7 +62,14 @@ export type WidgetTranslationKey =
   | 'biddingEndedMessage'
   | 'productNotLinkedMessage'
   | 'timeLeftOnResume'
-  | 'endedAtMessage';
+  | 'endedAtMessage'
+  | 'wonItemsTitle'
+  | 'wonItemsDescription'
+  | 'wonItemsStillLeading'
+  | 'wonItemsTotal'
+  | 'payAllButton'
+  | 'payAllOpening'
+  | 'payAllError';
 
 export type PanelTranslationKey =
   | 'displayNameLabel'
@@ -136,6 +143,13 @@ export const DEFAULT_WIDGET_TRANSLATIONS: Record<WidgetTranslationKey, string> =
   productNotLinkedMessage: 'This product is not linked to an active auction yet.',
   timeLeftOnResume: 'Time left on resume: {value}',
   endedAtMessage: 'Ended {value}',
+  wonItemsTitle: 'Your won items',
+  wonItemsDescription: 'Pay for all your winning items together in one checkout. Shipping is calculated once for the whole order.',
+  wonItemsStillLeading: 'You are still the highest bidder on {count} live auction(s). You can wait until they end and pay for everything together.',
+  wonItemsTotal: 'Total',
+  payAllButton: 'Pay for all ({count})',
+  payAllOpening: 'Opening checkout...',
+  payAllError: 'We couldn\'t open checkout. Please try again.',
 };
 
 export const DEFAULT_PANEL_TRANSLATIONS: Record<PanelTranslationKey, string> = {
@@ -207,6 +221,13 @@ export const WIDGET_TRANSLATIONS_BY_LANGUAGE: Record<
     loadErrorDescription: 'Vuelve a intentarlo en un momento.',
     loadMore: 'Cargar más',
     loading: 'Cargando...',
+    wonItemsTitle: 'Tus artículos ganados',
+    wonItemsDescription: 'Paga todos tus artículos ganados juntos en un solo pago. El envío se calcula una sola vez para todo el pedido.',
+    wonItemsStillLeading: 'Sigues siendo el mejor postor en {count} subasta(s) activa(s). Puedes esperar a que terminen y pagarlo todo junto.',
+    wonItemsTotal: 'Total',
+    payAllButton: 'Pagar todo ({count})',
+    payAllOpening: 'Abriendo el pago...',
+    payAllError: 'No pudimos abrir el pago. Inténtalo de nuevo.',
   }),
   fr: translated({
     browseTitle: 'Parcourir les produits aux enchères',
@@ -247,6 +268,13 @@ export const WIDGET_TRANSLATIONS_BY_LANGUAGE: Record<
     loadErrorDescription: 'Veuillez réessayer dans un instant.',
     loadMore: 'Charger plus',
     loading: 'Chargement...',
+    wonItemsTitle: 'Vos articles remportés',
+    wonItemsDescription: 'Payez tous vos articles remportés en une seule commande. La livraison est calculée une seule fois pour l’ensemble.',
+    wonItemsStillLeading: 'Vous êtes toujours le meilleur enchérisseur sur {count} enchère(s) en cours. Vous pouvez attendre leur fin et tout payer ensemble.',
+    wonItemsTotal: 'Total',
+    payAllButton: 'Tout payer ({count})',
+    payAllOpening: 'Ouverture du paiement...',
+    payAllError: 'Impossible d’ouvrir le paiement. Veuillez réessayer.',
   }),
   de: translated({
     browseTitle: 'Auktionsprodukte durchsuchen',
@@ -285,6 +313,13 @@ export const WIDGET_TRANSLATIONS_BY_LANGUAGE: Record<
     loadErrorDescription: 'Bitte versuche es gleich noch einmal.',
     loadMore: 'Mehr laden',
     loading: 'Lädt...',
+    wonItemsTitle: 'Ihre gewonnenen Artikel',
+    wonItemsDescription: 'Bezahlen Sie alle gewonnenen Artikel zusammen in einem Checkout. Der Versand wird einmal für die gesamte Bestellung berechnet.',
+    wonItemsStillLeading: 'Sie sind noch Höchstbietender bei {count} laufenden Auktion(en). Sie können warten, bis sie enden, und alles zusammen bezahlen.',
+    wonItemsTotal: 'Gesamt',
+    payAllButton: 'Alle bezahlen ({count})',
+    payAllOpening: 'Checkout wird geöffnet...',
+    payAllError: 'Der Checkout konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.',
   }),
   pt: translated({
     browseTitle: 'Explorar produtos em leilão',
@@ -323,6 +358,13 @@ export const WIDGET_TRANSLATIONS_BY_LANGUAGE: Record<
     loadErrorDescription: 'Tente novamente em instantes.',
     loadMore: 'Carregar mais',
     loading: 'Carregando...',
+    wonItemsTitle: 'Os seus artigos ganhos',
+    wonItemsDescription: 'Pague todos os artigos que ganhou de uma só vez, num único checkout. O envio é calculado uma vez para a encomenda completa.',
+    wonItemsStillLeading: 'Ainda tem a licitação mais alta em {count} leilão(ões) a decorrer. Pode esperar que terminem e pagar tudo junto.',
+    wonItemsTotal: 'Total',
+    payAllButton: 'Pagar tudo ({count})',
+    payAllOpening: 'A abrir o checkout...',
+    payAllError: 'Não foi possível abrir o checkout. Tente novamente.',
   }),
   it: translated({
     browseTitle: 'Sfoglia i prodotti all’asta',
@@ -361,6 +403,13 @@ export const WIDGET_TRANSLATIONS_BY_LANGUAGE: Record<
     loadErrorDescription: 'Riprova tra un momento.',
     loadMore: 'Carica altro',
     loading: 'Caricamento...',
+    wonItemsTitle: 'I tuoi articoli vinti',
+    wonItemsDescription: 'Paga tutti gli articoli vinti insieme in un unico checkout. La spedizione viene calcolata una sola volta per l’intero ordine.',
+    wonItemsStillLeading: 'Sei ancora il miglior offerente in {count} asta/e in corso. Puoi attendere che terminino e pagare tutto insieme.',
+    wonItemsTotal: 'Totale',
+    payAllButton: 'Paga tutto ({count})',
+    payAllOpening: 'Apertura del checkout...',
+    payAllError: 'Impossibile aprire il checkout. Riprova.',
   }),
   nl: translated({
     browseTitle: 'Veilingproducten bekijken',
@@ -1084,6 +1133,13 @@ export const WIDGET_TRANSLATION_FIELDS: Array<{
   { key: 'loadErrorDescription', label: 'Error description' },
   { key: 'loadMore', label: 'Load more button' },
   { key: 'loading', label: 'Loading label' },
+  { key: 'wonItemsTitle', label: 'Won items: title' },
+  { key: 'wonItemsDescription', label: 'Won items: description' },
+  { key: 'wonItemsStillLeading', label: 'Won items: still leading note', placeholderHint: '{count}' },
+  { key: 'wonItemsTotal', label: 'Won items: total label' },
+  { key: 'payAllButton', label: 'Won items: pay for all button', placeholderHint: '{count}' },
+  { key: 'payAllOpening', label: 'Won items: opening checkout' },
+  { key: 'payAllError', label: 'Won items: checkout error' },
 ];
 
 export function getWidgetTranslations(

@@ -77,8 +77,13 @@ export const previewDataSource: AuctionDataSource = {
     canSubmitBid: true,
     emailBiddingEnabled: false,
     winnerCheckoutEmailEnabled: false,
+    combinedWinnerCheckoutEnabled: false,
   }),
   placeBid: async () => {
     throw new Error('Bidding is disabled in the editor preview.');
+  },
+  listMemberWonItems: async () => ({ items: [], total: 0, stillLeadingCount: 0 }),
+  createMemberCombinedCheckout: async () => {
+    throw new Error('Checkout is disabled in the editor preview.');
   },
 };

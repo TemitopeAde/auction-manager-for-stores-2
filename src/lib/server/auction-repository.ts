@@ -28,6 +28,8 @@ interface AuctionCollectionItem {
   winnerPaymentEmailSentAt?: Date | string | null;
   winnerPaymentEmailAttemptKey?: string | null;
   winnerPaymentEmailLastSentKey?: string | null;
+  winnerOrderId?: string | null;
+  winnerPaidAt?: Date | string | null;
   pausedAt?: Date | string | null;
   pausedStartDelayMs?: number | null;
   pausedTimeRemainingMs?: number | null;
@@ -100,6 +102,8 @@ function normalizeAuctionRecord(item: AuctionCollectionItem): AuctionRecord {
       : null,
     winnerPaymentEmailAttemptKey: item.winnerPaymentEmailAttemptKey ?? null,
     winnerPaymentEmailLastSentKey: item.winnerPaymentEmailLastSentKey ?? null,
+    winnerOrderId: item.winnerOrderId ?? null,
+    winnerPaidAt: item.winnerPaidAt ? toIsoString(item.winnerPaidAt) : null,
     pausedAt: item.pausedAt ? toIsoString(item.pausedAt) : null,
     pausedStartDelayMs:
       typeof item.pausedStartDelayMs === 'number' ? item.pausedStartDelayMs : null,
@@ -127,6 +131,8 @@ function toCollectionPayload(
       | 'winnerPaymentEmailSentAt'
       | 'winnerPaymentEmailAttemptKey'
       | 'winnerPaymentEmailLastSentKey'
+      | 'winnerOrderId'
+      | 'winnerPaidAt'
       | 'pausedAt'
       | 'pausedStartDelayMs'
       | 'pausedTimeRemainingMs'
@@ -164,6 +170,8 @@ function toCollectionPayload(
       : null,
     winnerPaymentEmailAttemptKey: overrides?.winnerPaymentEmailAttemptKey ?? null,
     winnerPaymentEmailLastSentKey: overrides?.winnerPaymentEmailLastSentKey ?? null,
+    winnerOrderId: overrides?.winnerOrderId ?? null,
+    winnerPaidAt: overrides?.winnerPaidAt ? new Date(overrides.winnerPaidAt) : null,
     pausedAt: overrides?.pausedAt ? new Date(overrides.pausedAt) : null,
     pausedStartDelayMs: overrides?.pausedStartDelayMs ?? null,
     pausedTimeRemainingMs: overrides?.pausedTimeRemainingMs ?? null,
@@ -233,6 +241,8 @@ export async function createAuctionRecord(
       winnerPaymentEmailSentAt: null,
       winnerPaymentEmailAttemptKey: null,
       winnerPaymentEmailLastSentKey: null,
+      winnerOrderId: null,
+      winnerPaidAt: null,
       pausedAt: null,
       pausedStartDelayMs: null,
       pausedTimeRemainingMs: null,
@@ -263,6 +273,8 @@ export async function updateAuctionRecord(
       winnerPaymentEmailSentAt: existing.winnerPaymentEmailSentAt,
       winnerPaymentEmailAttemptKey: existing.winnerPaymentEmailAttemptKey,
       winnerPaymentEmailLastSentKey: existing.winnerPaymentEmailLastSentKey,
+      winnerOrderId: existing.winnerOrderId,
+      winnerPaidAt: existing.winnerPaidAt,
       pausedAt: existing.pausedAt,
       pausedStartDelayMs: existing.pausedStartDelayMs,
       pausedTimeRemainingMs: existing.pausedTimeRemainingMs,
@@ -278,7 +290,48 @@ export async function patchAuctionRecord(
   existing: AuctionRecord,
   patch: Partial<AuctionRecord>,
 ): Promise<AuctionRecord> {
-  const updated = await items.update(AUCTIONS_COLLECTION_ID, {
+  const updated = await items.update(
+    AUCTIONS_COLLECTION_ID,
+    toPatchedCollectionItem(auctionId, existing, patch),
+  );
+
+  return normalizeAuctionRecord(updated as unknown as AuctionCollectionItem);
+}
+
+/** Applies a patch to several auctions in one request. */
+export async function patchAuctionRecords(
+  patches: Array<{ existing: AuctionRecord; patch: Partial<AuctionRecord> }>,
+): Promise<void> {
+  if (patches.length === 0) {
+    return;
+  }
+
+  await items.bulkUpdate(
+    AUCTIONS_COLLECTION_ID,
+    patches.map(({ existing, patch }) => toPatchedCollectionItem(existing.id, existing, patch)),
+  );
+}
+
+export async function findAuctionsByWinnerCheckoutId(
+  checkoutId: string,
+): Promise<AuctionRecord[]> {
+  const result = await items
+    .query(AUCTIONS_COLLECTION_ID)
+    .eq('winnerCheckoutId', checkoutId)
+    .limit(1000)
+    .find();
+
+  return result.items.map((item) =>
+    normalizeAuctionRecord(item as unknown as AuctionCollectionItem),
+  );
+}
+
+function toPatchedCollectionItem(
+  auctionId: string,
+  existing: AuctionRecord,
+  patch: Partial<AuctionRecord>,
+) {
+  return {
     _id: auctionId,
     title: patch.title ?? existing.title,
     description: patch.description ?? existing.description,
@@ -334,6 +387,13 @@ export async function patchAuctionRecord(
       patch.winnerPaymentEmailLastSentKey === undefined
         ? existing.winnerPaymentEmailLastSentKey
         : patch.winnerPaymentEmailLastSentKey,
+    winnerOrderId:
+      patch.winnerOrderId === undefined ? existing.winnerOrderId : patch.winnerOrderId,
+    winnerPaidAt: (() => {
+      const winnerPaidAt =
+        patch.winnerPaidAt === undefined ? existing.winnerPaidAt : patch.winnerPaidAt;
+      return winnerPaidAt ? new Date(winnerPaidAt) : null;
+    })(),
     pausedAt: patch.pausedAt === undefined ? existing.pausedAt : patch.pausedAt,
     pausedStartDelayMs:
       patch.pausedStartDelayMs === undefined
@@ -346,9 +406,7 @@ export async function patchAuctionRecord(
     paymentMade: patch.paymentMade === undefined ? existing.paymentMade : patch.paymentMade,
     createdAt: new Date(existing.createdAt),
     updatedAt: new Date().toISOString(),
-  });
-
-  return normalizeAuctionRecord(updated as unknown as AuctionCollectionItem);
+  };
 }
 
 export async function deleteAuctionRecord(auctionId: string): Promise<void> {

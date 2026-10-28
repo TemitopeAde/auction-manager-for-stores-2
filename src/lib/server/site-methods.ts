@@ -1,9 +1,11 @@
 import type { CallerMember } from './caller';
 import {
   acknowledgeWinnerCheckoutEmail,
+  createMemberCombinedCheckout,
   getMemberAuctionBids,
   getProductVariantState,
   getWinnerCheckoutForProduct,
+  listMemberWonItems,
   sendWinnerCheckoutEmail,
   triggerWinnerCheckout,
 } from './auction-service';
@@ -44,6 +46,10 @@ export const MEMBER_SITE_METHODS = {
     }),
   acknowledgeWinnerCheckoutEmail: (member: CallerMember, auctionId: unknown) =>
     acknowledgeWinnerCheckoutEmail(requireString(auctionId, 'auctionId'), member.email),
+  listMemberWonItems: (member: CallerMember) =>
+    listMemberWonItems({ memberId: member.id, email: member.email }),
+  createMemberCombinedCheckout: (member: CallerMember) =>
+    createMemberCombinedCheckout({ memberId: member.id, email: member.email }),
   sendWinnerCheckoutEmail: (member: CallerMember, auctionId: unknown) =>
     sendWinnerCheckoutEmail({
       auctionId: requireString(auctionId, 'auctionId'),

@@ -59,6 +59,7 @@ const EDITABLE_SETTINGS = [
   'myBidsPageUrl',
   'blockCartAndCheckout',
   'blockAllCartAndCheckout',
+  'combinedWinnerCheckoutEnabled',
 ] as const satisfies ReadonlyArray<keyof AppSettings>;
 
 const MAX_PAGE_SIZE = 50;

@@ -14,6 +14,7 @@ export const elevatedItems = {
   get: auth.elevate(items.get),
   insert: auth.elevate(items.insert),
   update: auth.elevate(items.update),
+  bulkUpdate: auth.elevate(items.bulkUpdate),
   remove: auth.elevate(items.remove),
   bulkRemove: auth.elevate(items.bulkRemove),
 };

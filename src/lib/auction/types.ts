@@ -36,6 +36,8 @@ export interface AuctionRecord {
   winnerPaymentEmailSentAt: string | null;
   winnerPaymentEmailAttemptKey: string | null;
   winnerPaymentEmailLastSentKey: string | null;
+  winnerOrderId: string | null;
+  winnerPaidAt: string | null;
   pausedAt: string | null;
   pausedStartDelayMs: number | null;
   pausedTimeRemainingMs: number | null;
@@ -105,6 +107,7 @@ export interface AppSettings {
   bidDepositPercentage: number;
   blockCartAndCheckout: boolean;
   blockAllCartAndCheckout: boolean;
+  combinedWinnerCheckoutEnabled: boolean;
 }
 
 export interface WinnerPaymentDetails {
@@ -231,8 +234,25 @@ export interface PublicAuctionSettings {
   canSubmitBid: boolean;
   emailBiddingEnabled: boolean;
   winnerCheckoutEmailEnabled: boolean;
+  combinedWinnerCheckoutEnabled?: boolean;
   planTier?: PlanTier;
   planName?: string | null;
+}
+
+export interface MemberWonItem {
+  auctionId: string;
+  title: string;
+  productId: string;
+  imageUrl: string | null;
+  amount: number;
+  variantLabel: string | null;
+}
+
+export interface MemberWonItemsResult {
+  items: MemberWonItem[];
+  total: number;
+  /** Live auctions where the member is currently the highest bidder. */
+  stillLeadingCount: number;
 }
 
 export interface SendLeadEmailsInput {

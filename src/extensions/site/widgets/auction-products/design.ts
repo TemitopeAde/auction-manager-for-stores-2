@@ -40,6 +40,8 @@ export const DESIGN_ELEMENTS: DesignElement[] = [
   { id: 'bidButton', label: 'Bid button', className: 'auction-products-bid-button', properties: CONTROL },
   { id: 'carouselArrow', label: 'Carousel arrows', className: 'auction-products-carousel-arrow', properties: CONTROL },
   { id: 'loadMoreButton', label: 'Load more button', className: 'auction-products-load-more-button', properties: CONTROL },
+  { id: 'wonItems', label: 'Won items panel', className: 'auction-products-won-items', properties: SURFACE },
+  { id: 'payAllButton', label: 'Pay for all button', className: 'auction-products-pay-all-button', properties: CONTROL },
   { id: 'emptyTitle', label: 'Empty state title', className: 'auction-products-empty-title', properties: TEXT },
   { id: 'emptyDescription', label: 'Empty state text', className: 'auction-products-empty-description', properties: TEXT },
   { id: 'bidDialog', label: 'Bid dialog', className: 'auction-products-bid-dialog', properties: SURFACE },

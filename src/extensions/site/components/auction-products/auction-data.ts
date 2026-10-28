@@ -11,6 +11,8 @@ export type AuctionDataSource = {
   listPublicAuctions: typeof liveApi.listPublicAuctions;
   getPublicAuctionSettings: typeof liveApi.getPublicAuctionSettings;
   placeBid: typeof liveApi.placeBid;
+  listMemberWonItems: typeof liveApi.listMemberWonItems;
+  createMemberCombinedCheckout: typeof liveApi.createMemberCombinedCheckout;
   /** Whether to poll, play sounds, and call site APIs (currency, member, navigation). */
   live: boolean;
 };
@@ -20,6 +22,8 @@ const liveDataSource: AuctionDataSource = {
   listPublicAuctions: liveApi.listPublicAuctions,
   getPublicAuctionSettings: liveApi.getPublicAuctionSettings,
   placeBid: liveApi.placeBid,
+  listMemberWonItems: liveApi.listMemberWonItems,
+  createMemberCombinedCheckout: liveApi.createMemberCombinedCheckout,
   live: true,
 };
 

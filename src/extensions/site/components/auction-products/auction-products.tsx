@@ -39,6 +39,7 @@ import {
   SKELETON_CARD_COUNT,
 } from './constants';
 import { getWidgetTranslations, interpolateTranslation } from './i18n';
+import { WonItemsPanel } from './won-items-panel';
 import styles from './auction-products.module.css';
 
 type ElementProps = NonNullable<AuctionProductsProps['elementProps']>;
@@ -525,6 +526,10 @@ const AuctionProducts: React.FC<AuctionProductsProps> = (props) => {
           </select>
         </div>
       </header>
+
+      {data.live && hasCurrentMember && publicSettings?.combinedWinnerCheckoutEnabled ? (
+        <WonItemsPanel data={data} currency={siteCurrency} translations={translations} />
+      ) : null}
 
       {loadError && !showSkeleton ? (
         <div className={styles.errorBanner} role="alert">

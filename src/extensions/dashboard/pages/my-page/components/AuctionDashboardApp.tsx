@@ -4209,6 +4209,18 @@ export const AuctionDashboardApp: FC<AuctionDashboardAppProps> = ({
                 >
                   Email a custom payment link to email bidders selected as winners
                 </Checkbox>
+                <Checkbox
+                  checked={settingsForm.combinedWinnerCheckoutEnabled}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      combinedWinnerCheckoutEnabled: event.target.checked,
+                    })
+                  }
+                  tooltipContent="Signed-in members see their ended, unpaid winning items in the auction widget and pay for all of them in one checkout, each at its winning bid. Shipping is calculated once for the combined order using your store's shipping rules."
+                >
+                  Let members pay for all their won items in one checkout
+                </Checkbox>
                 <PlanLock
                   allowed={currentPlan.features.blockCartDuringLive}
                   feature="blockCartDuringLive"

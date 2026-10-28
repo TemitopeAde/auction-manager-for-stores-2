@@ -9,9 +9,15 @@ import auctionToolsImpl from './extensions/backend/service-plugins/auction-tools
 
 import auctionProductsWidget from './extensions/site/widgets/auction-products/auction-products.extension.ts';
 
+import winnerOrderApproved from './extensions/backend/events/winner-order-approved/winner-order-approved.extension.ts';
+
+import winnerOrderPaid from './extensions/backend/events/winner-order-paid/winner-order-paid.extension.ts';
+
 export default app()
   .use(myPage)
   .use(auctionProducts)
   .use(auctionTools)
   .use(auctionToolsImpl)
-  .use(auctionProductsWidget);
+  .use(auctionProductsWidget)
+  .use(winnerOrderApproved)
+  .use(winnerOrderPaid);
